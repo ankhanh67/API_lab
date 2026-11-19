@@ -54,7 +54,7 @@ Tài liệu này lưu lại toàn bộ quyết định kỹ thuật, trạng th�
   - Xây dựng `src/simulations/engines.ts` và `src/components/playgrounds/DedicatedPlaygrounds.tsx` cung cấp 7 Playground tương tác chuyên biệt + trang Phòng thí nghiệm trung tâm (`src/app/lab/page.tsx`) với Universal 8-Step Request/Response Simulator (Start/Pause/Resume/Reset/Step + Fault Injection).
   - Kết quả kiểm thử: `10/10 tests pass, typecheck sạch`.
 
-- **[x] Phase 4 & Phase 5 — Real-World Scenario Lab, Comparison Center, Knowledge Assessment & Verification**:
+- **[x] Phase 4 & Phase 5 — Real-World Scenario Lab, Comparison Center, Knowledge Assessment & Verification** (Commit `1d5382e` — `feat/add scenarios comparison assessment and docs`):
   - **Real-World Scenario Lab (`/scenarios`):** 6 kịch bản kiến trúc thực tế (E-Commerce, Real-Time Chat, Microservices gRPC, Data Aggregation GraphQL, Enterprise Banking SOAP, Contract-First OpenAPI) kèm mô phỏng luồng gói tin đa nút.
   - **Comparison Center (`/comparison`):** Ma trận đối chiếu 9 chiều kỹ thuật, Sơ đồ Kiến trúc Cộng sinh 7 công nghệ (Coexistence Blueprint) và Công cụ Tư vấn Ra quyết định chọn công nghệ.
   - **Knowledge Assessment (`/assessment`):** Hệ thống kiểm tra 3 dạng câu hỏi (Multiple Choice, Technical Understanding, Scenario-Based) với chấm điểm và giải thích tức thì.
