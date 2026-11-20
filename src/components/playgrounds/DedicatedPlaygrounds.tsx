@@ -31,8 +31,9 @@ import {
   executeGrpcSimulation,
   WebhookEventType,
   simulateWebhookDelivery,
-  DEFAULT_OPENAPI_SPEC_JSON,
-  parseOpenApiSpec,
+  WebRtcNatTopology,
+  WebRtcVideoCodec,
+  simulateWebRtcSession,
 } from '@/simulations/engines';
 import { SITE_CONFIG } from '@/config/site';
 
@@ -1351,132 +1352,301 @@ export function WebhookPlayground() {
 }
 
 // ============================================================================
-// 7. OPENAPI SPECIFICATION INTERACTIVE PLAYGROUND
+// 7. WEBRTC API INTERACTIVE PLAYGROUND (P2P SIGNALING, ICE/STUN/TURN & DATACHANNEL)
 // ============================================================================
-export function OpenApiPlayground() {
-  const [specText, setSpecText] = useState<string>(DEFAULT_OPENAPI_SPEC_JSON);
-  const parsed = parseOpenApiSpec(specText);
+export function WebRtcPlayground() {
+  const [natTopology, setNatTopology] =
+    useState<WebRtcNatTopology>('cone-nat-stun');
+  const [videoCodec, setVideoCodec] = useState<WebRtcVideoCodec>('VP9');
+  const [enableVideo, setEnableVideo] = useState<boolean>(true);
+  const [enableAudio, setEnableAudio] = useState<boolean>(true);
+  const [enableDataChannel, setEnableDataChannel] = useState<boolean>(true);
+  const [dcInput, setDcInput] = useState<string>(
+    '{"cursorX": 480, "cursorY": 210, "action": "DRAW_VECTOR"}'
+  );
+  const [dcPackets, setDcPackets] = useState<
+    { id: string; sender: string; payload: string; rttMs: number }[]
+  >([
+    {
+      id: 'dc-init',
+      sender: 'Peer A ⇄ Peer B (SCTP/UDP)',
+      payload: '{"event":"DATACHANNEL_OPEN","ordered":false,"maxRetransmits":0}',
+      rttMs: 16,
+    },
+  ]);
+
+  const session = simulateWebRtcSession({
+    natTopology,
+    videoCodec,
+    enableVideo,
+    enableAudio,
+    enableDataChannel,
+  });
+
+  const sendDataChannelPacket = (fromPeer: 'Peer A' | 'Peer B') => {
+    if (!enableDataChannel) return;
+    const targetPeer = fromPeer === 'Peer A' ? 'Peer B' : 'Peer A';
+    setDcPackets((prev) => [
+      {
+        id: `${Date.now()}-${Math.random()}`,
+        sender: `${fromPeer} ───► ${
+          session.isDirectP2P ? 'Direct UDP P2P' : 'TURN Relay'
+        } ───► ${targetPeer}`,
+        payload: dcInput,
+        rttMs: session.estimatedRttMs,
+      },
+      ...prev.slice(0, 5),
+    ]);
+  };
 
   return (
     <div className="rounded-lg border border-cyan-500/40 bg-slate-925 p-5 space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
         <div>
           <span className="font-mono text-[10px] font-bold uppercase text-cyan-400">
-            OPENAPI 3.0 SPECIFICATION PLAYGROUND — STUDENT MANAGEMENT REST API
+            WEBRTC PEER-TO-PEER PLAYGROUND — SIGNALING, ICE/STUN/TURN & DATACHANNEL
           </span>
           <h3 className="text-lg font-bold text-white">
-            Trình Soạn thảo Đặc tả OpenAPI, Xem trước Tài liệu (Swagger Preview) & Sinh Client SDK
+            Trình Mô phỏng Đàm phán SDP, Xuyên NAT (ICE/STUN/TURN) & Truyền tải P2P UDP
           </h3>
         </div>
-        <button
-          type="button"
-          onClick={() => setSpecText(DEFAULT_OPENAPI_SPEC_JSON)}
-          className="inline-flex items-center gap-1.5 rounded border border-slate-700 bg-slate-900 px-3 py-1.5 font-mono text-xs text-slate-300 hover:border-cyan-400"
+        <span
+          className={`rounded border px-3 py-1 font-mono text-xs font-bold ${
+            session.isDirectP2P
+              ? 'border-emerald-500/40 bg-emerald-950/40 text-emerald-300'
+              : 'border-amber-500/40 bg-amber-950/40 text-amber-300'
+          }`}
         >
-          <RotateCcw className="h-3.5 w-3.5" />
-          Khôi phục Spec Mẫu
-        </button>
+          {session.isDirectP2P
+            ? `⚡ DIRECT P2P UDP (${session.estimatedRttMs}ms RTT)`
+            : `⇄ TURN RELAY FALLBACK (${session.estimatedRttMs}ms RTT)`}
+        </span>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* Left: Editable OpenAPI 3.0 Spec */}
-        <div className="lg:col-span-6 space-y-3 rounded border border-slate-800 bg-slate-950 p-4">
-          <div className="flex items-center justify-between">
-            <span className="font-mono text-xs font-semibold text-cyan-300">
-              openapi.json (Chỉnh sửa trực tiếp để cập nhật UI bên phải)
-            </span>
-            <span
-              className={`rounded px-2 py-0.5 font-mono text-[11px] font-bold ${
-                parsed.isValid
-                  ? 'bg-emerald-500/20 text-emerald-300'
-                  : 'bg-rose-500/20 text-rose-300'
-              }`}
-            >
-              {parsed.isValid ? 'VALID OAS 3.0' : 'SYNTAX ERROR'}
-            </span>
+      {/* Topology & Media Tracks Configuration */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 rounded border border-slate-800 bg-slate-950 p-4">
+        <div className="lg:col-span-7 space-y-2">
+          <p className="font-mono text-xs font-semibold text-cyan-300">
+            1. Chọn Địa hình Mạng & Tường lửa NAT (ICE / STUN / TURN Topology):
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {(
+              [
+                {
+                  id: 'lan-host',
+                  title: 'Cùng mạng LAN (typ host)',
+                  sub: 'Kết nối IP nội bộ trực tiếp (4ms)',
+                },
+                {
+                  id: 'cone-nat-stun',
+                  title: 'Xuyên NAT qua STUN (typ srflx)',
+                  sub: 'UDP Hole Punching P2P (16ms)',
+                },
+                {
+                  id: 'symmetric-nat-turn',
+                  title: 'Tường lửa Chặn P2P (typ relay)',
+                  sub: 'Chuyển tiếp qua TURN Server (48ms)',
+                },
+              ] as const
+            ).map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setNatTopology(item.id)}
+                className={`rounded border p-2.5 text-left transition-colors ${
+                  natTopology === item.id
+                    ? 'border-cyan-400 bg-cyan-950/60 text-white'
+                    : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <p className="font-mono text-xs font-bold text-cyan-300">
+                  {item.title}
+                </p>
+                <p className="text-[11px] mt-0.5">{item.sub}</p>
+              </button>
+            ))}
           </div>
-          <textarea
-            rows={18}
-            value={specText}
-            onChange={(e) => setSpecText(e.target.value)}
-            className="w-full rounded border border-slate-800 bg-slate-900 p-3 font-mono text-xs text-slate-200 leading-relaxed"
-          />
         </div>
 
-        {/* Right: Auto-generated Interactive Doc Preview & Client SDK */}
+        <div className="lg:col-span-5 space-y-2">
+          <p className="font-mono text-xs font-semibold text-cyan-300">
+            2. Cấu hình Kênh Truyền (Media Tracks & Codec):
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setEnableVideo((v) => !v)}
+              className={`rounded border px-2.5 py-1.5 font-mono text-xs ${
+                enableVideo
+                  ? 'border-cyan-400 bg-cyan-950/50 text-cyan-200 font-bold'
+                  : 'border-slate-800 bg-slate-900 text-slate-500'
+              }`}
+            >
+              {enableVideo ? '☑' : '☐'} Video (SRTP)
+            </button>
+            <button
+              type="button"
+              onClick={() => setEnableAudio((v) => !v)}
+              className={`rounded border px-2.5 py-1.5 font-mono text-xs ${
+                enableAudio
+                  ? 'border-cyan-400 bg-cyan-950/50 text-cyan-200 font-bold'
+                  : 'border-slate-800 bg-slate-900 text-slate-500'
+              }`}
+            >
+              {enableAudio ? '☑' : '☐'} Audio (Opus)
+            </button>
+            <button
+              type="button"
+              onClick={() => setEnableDataChannel((v) => !v)}
+              className={`rounded border px-2.5 py-1.5 font-mono text-xs ${
+                enableDataChannel
+                  ? 'border-cyan-400 bg-cyan-950/50 text-cyan-200 font-bold'
+                  : 'border-slate-800 bg-slate-900 text-slate-500'
+              }`}
+            >
+              {enableDataChannel ? '☑' : '☐'} RTCDataChannel (SCTP)
+            </button>
+          </div>
+          <div className="flex items-center gap-2 pt-1">
+            <span className="font-mono text-[11px] text-slate-400">
+              Video Codec:
+            </span>
+            {(['VP9', 'H264', 'AV1'] as WebRtcVideoCodec[]).map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setVideoCodec(c)}
+                className={`rounded px-2 py-0.5 font-mono text-xs ${
+                  videoCodec === c
+                    ? 'bg-cyan-500 text-slate-950 font-bold'
+                    : 'bg-slate-900 text-slate-400 border border-slate-800'
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 4-Stage Handshake & ICE Candidate Table */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        {/* Left: SDP Offer/Answer & ICE Candidate Table */}
         <div className="lg:col-span-6 space-y-4 rounded border border-slate-800 bg-slate-950 p-4">
-          {!parsed.isValid ? (
-            <div className="rounded border border-rose-500/40 bg-rose-950/30 p-4 text-xs text-rose-200">
-              <p className="font-mono font-bold">Lỗi Phân tích Đặc tả OpenAPI:</p>
-              <p className="mt-1">{parsed.errorMessage}</p>
-            </div>
-          ) : (
-            <>
-              <div className="border-b border-slate-800 pb-2">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-base font-bold text-white">{parsed.title}</h4>
-                  <span className="rounded bg-cyan-500/20 px-2 py-0.5 font-mono text-xs text-cyan-300">
-                    v{parsed.version}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-400">
-                  Interactive Documentation Preview ({parsed.endpoints.length} endpoints
-                  được mô tả trong 1 tài liệu duy nhất)
-                </p>
-              </div>
-
-              <div className="space-y-2 max-h-56 overflow-y-auto">
-                {parsed.endpoints.map((ep) => (
-                  <div
-                    key={`${ep.method}-${ep.path}`}
-                    className="rounded border border-slate-800 bg-slate-900 p-3 space-y-1.5"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`rounded px-2 py-0.5 font-mono text-[11px] font-bold ${
-                            ep.method === 'GET'
-                              ? 'bg-sky-500/20 text-sky-300'
-                              : ep.method === 'POST'
-                              ? 'bg-emerald-500/20 text-emerald-300'
-                              : 'bg-amber-500/20 text-amber-300'
-                          }`}
-                        >
-                          {ep.method}
-                        </span>
-                        <span className="font-mono text-xs font-bold text-white">
-                          {ep.path}
-                        </span>
-                      </div>
-                      <span className="font-mono text-[11px] text-emerald-400">
-                        → {ep.responseCode}: {ep.responseDescription}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-300">{ep.summary}</p>
-                    {ep.parameters.length > 0 && (
-                      <p className="font-mono text-[11px] text-slate-400">
-                        Params: {ep.parameters.join(', ')}
-                      </p>
-                    )}
-                    {ep.requestSchema && (
-                      <p className="font-mono text-[11px] text-cyan-300">
-                        Body Schema: {ep.requestSchema}
-                      </p>
-                    )}
+          <div>
+            <p className="font-mono text-xs font-bold text-cyan-400 mb-1.5">
+              Bảng Thu thập Ứng viên Mạng (ICE Candidate Gathering Table):
+            </p>
+            <div className="space-y-2">
+              {session.iceCandidates.map((cand) => (
+                <div
+                  key={cand.id}
+                  className={`rounded border p-2.5 text-xs ${
+                    cand.selected
+                      ? 'border-emerald-500/50 bg-emerald-950/25'
+                      : 'border-slate-800 bg-slate-900/60 opacity-65'
+                  }`}
+                >
+                  <div className="flex items-center justify-between font-mono">
+                    <span className="font-bold text-white">
+                      typ {cand.type} — {cand.ipPort}
+                    </span>
+                    <span
+                      className={`rounded px-2 py-0.5 text-[10px] font-bold ${
+                        cand.selected
+                          ? 'bg-emerald-500 text-slate-950'
+                          : 'bg-slate-800 text-slate-400'
+                      }`}
+                    >
+                      {cand.selected ? 'SELECTED PAIR' : 'STANDBY'}
+                    </span>
                   </div>
-                ))}
-              </div>
+                  <p className="text-slate-300 text-[11px] mt-1">
+                    {cand.descriptionVi}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
 
-              <div>
-                <p className="font-mono text-[10px] uppercase text-cyan-400 mb-1">
-                  Auto-Generated TypeScript Client SDK Preview:
-                </p>
-                <pre className="rounded border border-slate-800 bg-slate-900 p-3 font-mono text-[11px] text-slate-300 overflow-x-auto max-h-40">
-                  <code>{parsed.generatedTypeScriptSdk}</code>
-                </pre>
+          <div>
+            <p className="font-mono text-xs font-bold text-cyan-400 mb-1">
+              Bản mô tả phiên SDP Offer (Trao đổi qua WebSocket Signaling):
+            </p>
+            <pre className="rounded border border-slate-800 bg-slate-900 p-3 font-mono text-[11px] text-cyan-200 overflow-x-auto max-h-44">
+              <code>{session.sdpOfferText}</code>
+            </pre>
+          </div>
+        </div>
+
+        {/* Right: Active P2P Path, 4 Handshake Stages & Live RTCDataChannel */}
+        <div className="lg:col-span-6 space-y-4 rounded border border-slate-800 bg-slate-950 p-4">
+          <div className="rounded border border-cyan-500/30 bg-cyan-950/20 p-3">
+            <p className="font-mono text-[10px] uppercase text-cyan-400">
+              Đường truyền Vật lý Đang Hoạt động (Active Media/Data Tunnel):
+            </p>
+            <p className="font-mono text-xs font-bold text-white mt-0.5">
+              {session.activePathLabel}
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            {session.handshakeStages.map((st) => (
+              <div
+                key={st.stage}
+                className="rounded border border-slate-800 bg-slate-900 px-3 py-2 text-xs"
+              >
+                <p className="font-mono font-bold text-cyan-300">{st.title}</p>
+                <p className="text-slate-300 text-[11px] mt-0.5">{st.detailVi}</p>
               </div>
-            </>
-          )}
+            ))}
+          </div>
+
+          {/* Live RTCDataChannel P2P Tester */}
+          <div className="border-t border-slate-800 pt-3 space-y-2">
+            <p className="font-mono text-xs font-bold text-emerald-400">
+              Thử nghiệm Truyền Gói tin P2P qua RTCDataChannel (SCTP/UDP):
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <input
+                type="text"
+                value={dcInput}
+                onChange={(e) => setDcInput(e.target.value)}
+                disabled={!enableDataChannel}
+                className="flex-1 rounded border border-slate-800 bg-slate-900 px-2.5 py-1.5 font-mono text-xs text-white disabled:opacity-40"
+              />
+              <button
+                type="button"
+                disabled={!enableDataChannel}
+                onClick={() => sendDataChannelPacket('Peer A')}
+                className="rounded bg-cyan-500 px-3 py-1.5 font-mono text-xs font-bold text-slate-950 hover:bg-cyan-400 disabled:opacity-40"
+              >
+                Peer A → Peer B
+              </button>
+              <button
+                type="button"
+                disabled={!enableDataChannel}
+                onClick={() => sendDataChannelPacket('Peer B')}
+                className="rounded bg-emerald-500 px-3 py-1.5 font-mono text-xs font-bold text-slate-950 hover:bg-emerald-400 disabled:opacity-40"
+              >
+                Peer B → Peer A
+              </button>
+            </div>
+            <div className="space-y-1 max-h-28 overflow-y-auto">
+              {dcPackets.map((pkt) => (
+                <div
+                  key={pkt.id}
+                  className="flex items-center justify-between rounded border border-slate-800/80 bg-slate-900/70 px-2.5 py-1 font-mono text-[11px]"
+                >
+                  <span className="text-cyan-300">{pkt.sender}</span>
+                  <code className="text-slate-200 truncate max-w-[210px]">
+                    {pkt.payload}
+                  </code>
+                  <span className="text-emerald-400">{pkt.rttMs}ms</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1501,7 +1671,7 @@ export function DedicatedModulePlayground({
       return <WebsocketPlayground />;
     case 'webhook':
       return <WebhookPlayground />;
-    case 'openapi':
-      return <OpenApiPlayground />;
+    case 'webrtc':
+      return <WebRtcPlayground />;
   }
 }

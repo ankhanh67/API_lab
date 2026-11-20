@@ -2,18 +2,18 @@ import { RealWorldScenario } from '@/types/api';
 
 export const REAL_WORLD_SCENARIOS: RealWorldScenario[] = [
   // ==========================================================================
-  // SCENARIO 1: E-COMMERCE PLATFORM (REST + WEBHOOK + OPENAPI COEXISTENCE)
+  // SCENARIO 1: E-COMMERCE PLATFORM (REST + WEBHOOK + WEBSOCKET COEXISTENCE)
   // ==========================================================================
   {
     id: 'ecommerce-platform',
     number: 1,
     titleEn: 'Scenario 1: E-Commerce Platform',
-    titleVi: 'Kịch bản 1: Nền tảng Thương mại Điện tử (Sự cộng sinh REST + Webhook + OpenAPI)',
+    titleVi: 'Kịch bản 1: Nền tảng Thương mại Điện tử (Sự cộng sinh REST + Webhook + WebSocket)',
     subtitleVi:
-      'Kết hợp REST cho quản lý sản phẩm/đơn hàng, OpenAPI để chuẩn hóa hợp đồng tài liệu và Webhook để nhận thông báo thanh toán bất đồng bộ.',
-    technologies: ['rest', 'webhook', 'openapi'],
+      'Kết hợp REST cho quản lý sản phẩm/đơn hàng, Webhook để nhận thông báo thanh toán bất đồng bộ từ ngân hàng và WebSocket để đẩy trạng thái đơn hàng tức thời lên màn hình khách hàng.',
+    technologies: ['rest', 'webhook', 'websocket'],
     businessProblemVi:
-      'Một sàn thương mại điện tử cần cung cấp API lấy danh sách sản phẩm và tạo đơn hàng cho cả Web và Mobile App (đòi hỏi tài liệu đồng bộ cho đội Frontend), đồng thời tích hợp với cổng thanh toán ngân hàng bên ngoài vốn cần vài phút để khách hàng quét mã QR chuyển khoản.',
+      'Một sàn thương mại điện tử cần cung cấp API lấy danh sách sản phẩm và tạo đơn hàng cho cả Web và Mobile App, đồng thời tích hợp với cổng thanh toán ngân hàng bên ngoài vốn cần vài phút để khách hàng quét mã QR chuyển khoản rồi tự động cập nhật ngay lên màn hình của khách.',
     whyTheseTechnologiesVi: [
       {
         techId: 'rest',
@@ -21,30 +21,23 @@ export const REAL_WORLD_SCENARIOS: RealWorldScenario[] = [
           'Xử lý hoàn hảo các thao tác CRUD đồng bộ (GET /api/products, POST /api/orders) từ trình duyệt và tận dụng được HTTP Caching cho trang danh mục.',
       },
       {
-        techId: 'openapi',
-        reasonVi:
-          'Đóng vai trò hợp đồng (openapi.yaml) mô tả toàn bộ các REST Endpoints, giúp tự động sinh tài liệu Swagger UI, kiểm tra Schema ở API Gateway và sinh TypeScript SDK cho đội Frontend.',
-      },
-      {
         techId: 'webhook',
         reasonVi:
           'Giải quyết bài toán thanh toán bất đồng bộ: Thay vì Backend phải gọi hỏi ngân hàng mỗi giây (Polling), cổng thanh toán tự động bắn HTTP POST (payment.success) về Callback URL của sàn ngay khi khách trả tiền xong.',
       },
+      {
+        techId: 'websocket',
+        reasonVi:
+          'Ngay khi Backend nhận được Webhook thanh toán thành công, WebSocket Hub lập tức đẩy sự kiện ORDER_PAID xuống trình duyệt để chuyển màn hình QR sang trang "Thanh toán thành công".',
+      },
     ],
     nodes: [
-      {
-        id: 'ec-spec',
-        name: 'OpenAPI 3.0 Contract',
-        role: 'Blueprint & Validator',
-        techUsed: 'OpenAPI Specification',
-        descriptionVi: 'Mô tả Schema cho /products và /orders; cấu hình bộ lọc kiểm tra hợp lệ trên Gateway.',
-      },
       {
         id: 'ec-client',
         name: 'Web & Mobile Storefront',
         role: 'Customer Interface',
-        techUsed: 'REST Client (Auto-generated SDK)',
-        descriptionVi: 'Duyệt danh mục sản phẩm và gửi yêu cầu tạo đơn hàng mới.',
+        techUsed: 'REST Client + WebSocket Listener',
+        descriptionVi: 'Duyệt danh mục sản phẩm, gửi yêu cầu tạo đơn hàng và mở kênh WebSocket chờ xác nhận QR.',
       },
       {
         id: 'ec-api',
@@ -60,47 +53,54 @@ export const REAL_WORLD_SCENARIOS: RealWorldScenario[] = [
         techUsed: 'Webhook Dispatcher',
         descriptionVi: 'Xử lý giao dịch ngân hàng và chủ động bắn HTTP POST có chữ ký HMAC khi thanh toán hoàn tất.',
       },
+      {
+        id: 'ec-ws',
+        name: 'Realtime Notification Hub',
+        role: 'Push Notification Broker',
+        techUsed: 'WebSocket Server (wss://)',
+        descriptionVi: 'Đẩy thông báo thanh toán hoàn tất xuống trình duyệt của khách hàng trong 4ms.',
+      },
     ],
     simulationSteps: [
       {
         step: 1,
-        fromNodeId: 'ec-spec',
-        toNodeId: 'ec-api',
-        techId: 'openapi',
-        actionLabel: '1. Load OpenAPI Contract & Schema Rules',
-        payload: `openapi: 3.0.3 | paths: { "/api/products": GET, "/api/orders": POST }`,
-        explanationVi:
-          'API Gateway nạp tài liệu OpenAPI để kích hoạt cơ chế tự động kiểm tra Schema cho mọi REST Request.',
-      },
-      {
-        step: 2,
         fromNodeId: 'ec-client',
         toNodeId: 'ec-api',
         techId: 'rest',
-        actionLabel: '2. GET /api/products & POST /api/orders',
+        actionLabel: '1. GET /api/products & POST /api/orders',
         payload: `POST /api/orders\n{"items":[{"productId":101,"qty":1}],"paymentMethod":"QR_BANK"}\n--> 201 Created {"orderId":"ORD-2026-88","status":"PENDING_PAYMENT"}`,
         explanationVi:
           'Khách hàng đặt mua sản phẩm qua REST API. Server tạo đơn ở trạng thái PENDING_PAYMENT và trả về 201 Created.',
       },
       {
-        step: 3,
+        step: 2,
         fromNodeId: 'ec-pay',
         toNodeId: 'ec-api',
         techId: 'webhook',
-        actionLabel: '3. Webhook Push: POST /webhooks/payment (payment.success)',
+        actionLabel: '2. Webhook Push: POST /webhooks/payment (payment.success)',
         payload: `POST /api/webhooks/payment\nX-Webhook-Signature: sha256=9f8e7d6c...\n{"id":"evt_991","event":"payment.success","data":{"orderId":"ORD-2026-88","amount":2450000}}`,
         explanationVi:
           '30 giây sau, khách quét QR thanh toán thành công. Cổng thanh toán chủ động bắn Webhook HTTP POST kèm chữ ký HMAC sang Backend.',
       },
       {
-        step: 4,
+        step: 3,
         fromNodeId: 'ec-api',
         toNodeId: 'ec-pay',
         techId: 'webhook',
-        actionLabel: '4. Verify HMAC, Update Order to PAID & Return 200 OK',
+        actionLabel: '3. Verify HMAC, Update Order to PAID & Return 200 OK',
         payload: `HTTP/1.1 200 OK\n{"received":true,"orderStatus":"PAID"}`,
         explanationVi:
-          'Backend xác thực chữ ký HMAC, kiểm tra Idempotency, chuyển đơn hàng sang trạng thái PAID và trả về 200 OK để hoàn tất.',
+          'Backend xác thực chữ ký HMAC, kiểm tra Idempotency, chuyển đơn hàng sang trạng thái PAID và trả về 200 OK.',
+      },
+      {
+        step: 4,
+        fromNodeId: 'ec-ws',
+        toNodeId: 'ec-client',
+        techId: 'websocket',
+        actionLabel: '4. WebSocket Push: Instant UI Order Confirmation',
+        payload: `WS Frame [Server Push]: {"event":"order.paid","orderId":"ORD-2026-88","redirect":"/orders/ORD-2026-88/success"}`,
+        explanationVi:
+          'WebSocket Hub đẩy ngay trạng thái hoàn tất xuống trình duyệt để cập nhật giao diện mà không cần reload trang.',
       },
     ],
     tradeOffsVi: [
@@ -434,88 +434,88 @@ export const REAL_WORLD_SCENARIOS: RealWorldScenario[] = [
   },
 
   // ==========================================================================
-  // SCENARIO 6: API DOCUMENTATION & CONTRACT PLATFORM (OPENAPI)
+  // SCENARIO 6: TELEHEALTH & P2P VIDEO CONSULTATION PLATFORM (WEBRTC + WEBSOCKET)
   // ==========================================================================
   {
-    id: 'api-documentation-openapi',
+    id: 'telehealth-webrtc',
     number: 6,
-    titleEn: 'Scenario 6: Contract-First API Governance & Documentation Platform',
-    titleVi: 'Kịch bản 6: Nền tảng Quản trị Hợp đồng & Tự động hóa Tài liệu (OpenAPI 3.0)',
+    titleEn: 'Scenario 6: Telehealth & Real-Time Video Consultation Platform',
+    titleVi: 'Kịch bản 6: Nền tảng Khám bệnh Từ xa & Truyền hình P2P (WebRTC + WebSocket Signaling)',
     subtitleVi:
-      'Sử dụng một đặc tả OpenAPI duy nhất để tự động hóa cổng tài liệu Swagger UI, sinh Client SDK đa ngôn ngữ và chặn Request sai chuẩn tại Gateway.',
-    technologies: ['openapi', 'rest'],
+      'Kết hợp WebSocket làm kênh báo hiệu (Signaling SDP/ICE) và WebRTC để mở đường hầm UDP truyền trực tiếp Video 1080p và chỉ số nhịp tim (RTCDataChannel) giữa Bác sĩ và Bệnh nhân.',
+    technologies: ['webrtc', 'websocket'],
     businessProblemVi:
-      'Một công ty phần mềm có 15 nhóm phát triển cùng xây dựng hơn 80 REST Endpoints. Việc viết tài liệu thủ công khiến tài liệu luôn lỗi thời so với code, đội Mobile và Frontend liên tục gặp lỗi Runtime vì Backend đổi tên trường JSON mà không báo trước.',
+      'Một ứng dụng y tế từ xa (Telehealth) cần kết nối Video/Audio chất lượng cao với độ trễ dưới 25ms giữa trình duyệt của Bác sĩ và Bệnh nhân, đồng thời truyền liên tục luồng dữ liệu cảm biến nhịp tim/SpO2 theo thời gian thực mà không muốn tốn chi phí máy chủ trung gian giải mã video.',
     whyTheseTechnologiesVi: [
       {
-        techId: 'openapi',
+        techId: 'webrtc',
         reasonVi:
-          'Thiết lập quy trình Contract-First: Mọi thay đổi API phải được cập nhật vào file openapi.yaml trước, từ đó hệ thống CI/CD tự động dựng trang tài liệu, sinh TypeScript/Kotlin SDK và nạp luật kiểm tra vào API Gateway.',
+          'Thiết lập kết nối ngang hàng trực tiếp (Peer-to-Peer) qua giao thức UDP để truyền luồng Video/Audio mã hóa DTLS-SRTP và dữ liệu cảm biến qua RTCDataChannel (SCTP) với độ trễ cực thấp và tải băng thông Server bằng 0.',
       },
       {
-        techId: 'rest',
+        techId: 'websocket',
         reasonVi:
-          'Kiến trúc RESTful cung cấp nền tảng tài nguyên và HTTP Status Codes chuẩn mực để OpenAPI mô tả chính xác.',
+          'Đóng vai trò Signaling Server thiết yếu ở giai đoạn khởi tạo để trình duyệt Bác sĩ và Bệnh nhân trao đổi bản mô tả phiên (SDP Offer/Answer) và tọa độ xuyên NAT (ICE Candidates).',
       },
     ],
     nodes: [
       {
-        id: 'doc-spec',
-        name: 'Single Source of Truth (openapi.yaml)',
-        role: 'Git-Versioned API Contract',
-        techUsed: 'OpenAPI Specification 3.0',
-        descriptionVi: 'Tệp đặc tả trung tâm được kiểm duyệt qua Pull Request.',
+        id: 'rtc-doc',
+        name: 'Doctor Browser (Peer A)',
+        role: 'WebRTC Caller & Telemetry Viewer',
+        techUsed: 'RTCPeerConnection (SRTP + SCTP)',
+        descriptionVi: 'Khởi tạo cuộc gọi khám bệnh, tạo SDP Offer và nhận luồng Video + cảm biến y tế.',
       },
       {
-        id: 'doc-portal',
-        name: 'Developer Portal & SDK Generator',
-        role: 'Documentation & Codegen Pipeline',
-        techUsed: 'Swagger UI + OpenAPI Generator',
-        descriptionVi: 'Tự động xuất bản cổng tài liệu tương tác và gói npm/pip Client SDK.',
+        id: 'rtc-sig',
+        name: 'WebSocket Signaling & STUN Server',
+        role: 'Session Negotiation & NAT Discovery',
+        techUsed: 'WebSocket (wss://) + STUN (RFC 5389)',
+        descriptionVi: 'Chuyển tiếp gói SDP Offer/Answer và hỗ trợ hai Peer tìm địa chỉ IP:Port công cộng để đục lỗ NAT.',
       },
       {
-        id: 'doc-gateway',
-        name: 'Contract-Enforcing API Gateway',
-        role: 'Runtime Validation Layer',
-        techUsed: 'OpenAPI Validation Middleware',
-        descriptionVi: 'Đối chiếu mọi REST Request/Response thực tế với Schema trong file OpenAPI.',
+        id: 'rtc-pat',
+        name: 'Patient Browser (Peer B)',
+        role: 'WebRTC Callee & Sensor Streamer',
+        techUsed: 'RTCPeerConnection + RTCDataChannel',
+        descriptionVi: 'Phản hồi SDP Answer và phát trực tiếp luồng Camera + chỉ số SpO2 sang máy Bác sĩ qua UDP P2P.',
       },
     ],
     simulationSteps: [
       {
         step: 1,
-        fromNodeId: 'doc-spec',
-        toNodeId: 'doc-portal',
-        techId: 'openapi',
-        actionLabel: '1. CI/CD Parses openapi.yaml → Renders Docs & Generates SDKs',
-        payload: `Generated: Swagger UI Portal + @company/student-api-sdk@1.2.0 (TypeScript)`,
+        fromNodeId: 'rtc-doc',
+        toNodeId: 'rtc-sig',
+        techId: 'websocket',
+        actionLabel: '1. Signaling: Send SDP Offer & Gather STUN ICE Candidates',
+        payload: `WS Signaling -> {"type":"offer","sdp":"v=0\\r\\nm=video 9 UDP/TLS/RTP/SAVPF 98 (VP9)..."} | STUN srflx: 203.113.148.22:54321`,
         explanationVi:
-          'Khi file openapi.yaml được cập nhật, pipeline tự động xuất bản trang tài liệu mới và gói SDK có định kiểu đầy đủ.',
+          'Trình duyệt Bác sĩ tạo SDP Offer gửi qua WebSocket Signaling Server và hỏi STUN Server để lấy tọa độ IP/Port công cộng.',
       },
       {
         step: 2,
-        fromNodeId: 'doc-spec',
-        toNodeId: 'doc-gateway',
-        techId: 'openapi',
-        actionLabel: '2. Deploy JSON Schema Rules to API Gateway',
-        payload: `Loaded 4 Paths & 6 Component Schemas into Gateway Validation Engine`,
+        fromNodeId: 'rtc-pat',
+        toNodeId: 'rtc-sig',
+        techId: 'websocket',
+        actionLabel: '2. Signaling: Return SDP Answer & Complete ICE Hole Punching',
+        payload: `WS Signaling -> {"type":"answer","sdp":"v=0...a=setup:active"} | ICE State: CONNECTED`,
         explanationVi:
-          'API Gateway nạp trực tiếp các ràng buộc kiểu dữ liệu từ cùng file OpenAPI đó.',
+          'Trình duyệt Bệnh nhân nhận Offer, gửi trả SDP Answer qua WebSocket và hoàn tất đục lỗ UDP NAT trực tiếp với máy Bác sĩ.',
       },
       {
         step: 3,
-        fromNodeId: 'doc-portal',
-        toNodeId: 'doc-gateway',
-        techId: 'rest',
-        actionLabel: '3. Client Calls REST Endpoint Using Generated Typed SDK',
-        payload: `POST /students {"fullName":"Nguyễn Văn A","email":"a@univ.edu.vn","major":"CS"} --> 201 Created`,
+        fromNodeId: 'rtc-pat',
+        toNodeId: 'rtc-doc',
+        techId: 'webrtc',
+        actionLabel: '3. Direct P2P UDP Stream: SRTP Video + SCTP Vitals DataChannel',
+        payload: `Direct P2P UDP (16ms RTT): [SRTP Video 1080p@60fps] + [RTCDataChannel: {"heartRate":76,"spo2":99}]`,
         explanationVi:
-          'Ứng dụng Frontend gọi REST API qua hàm SDK sinh tự động, đảm bảo khớp 100% với bộ kiểm tra trên Gateway.',
+          'Luồng Video khám bệnh và chỉ số nhịp tim chảy trực tiếp Peer-to-Peer giữa hai trình duyệt qua UDP mã hóa DTLS-SRTP mà không còn đi qua máy chủ!',
       },
     ],
     tradeOffsVi: [
-      'Loại bỏ triệt để tình trạng lệch tài liệu (Documentation Drift) và lỗi sai kiểu dữ liệu giữa Frontend và Backend.',
-      'Đánh đổi: Đòi hỏi kỷ luật kỹ thuật của đội ngũ trong việc duy trì và review file đặc tả OpenAPI trong quy trình CI/CD.',
+      'Đạt độ trễ truyền thông thấp nhất (< 20ms) và tiết kiệm 100% băng thông máy chủ trung tâm cho các cuộc gọi 1-1.',
+      'Đánh đổi: Bắt buộc phải duy trì hạ tầng STUN/TURN dự phòng cho ~15% trường hợp người dùng nằm sau tường lửa Symmetric NAT chặn kết nối P2P trực tiếp.',
     ],
   },
 ];

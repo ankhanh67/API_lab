@@ -575,265 +575,241 @@ export async function handlePaymentWebhook(
   },
 
   // ==========================================================================
-  // MODULE 7: OPENAPI SPECIFICATION
+  // MODULE 7: WEBRTC API
   // ==========================================================================
   {
-    id: 'openapi',
+    id: 'webrtc',
     order: 7,
-    name: 'OpenAPI Specification',
+    name: 'WebRTC API',
     taglineVi:
-      'Tiêu chuẩn đặc tả hợp đồng REST API độc lập ngôn ngữ (YAML/JSON) phục vụ sinh tài liệu tương tác, kiểm tra hợp lệ và sinh mã nguồn tự động.',
-    technicalNature: 'API Description Specification',
-    technicalNatureVi: 'Đặc tả mô tả cấu trúc & hợp đồng API (API Description Specification)',
+      'Tổ hợp giao thức và API chuẩn W3C/IETF cho phép truyền tải Video, Audio và Dữ liệu trực tiếp ngang hàng (Peer-to-Peer) giữa các trình duyệt với độ trễ cực thấp qua UDP.',
+    technicalNature: 'P2P Real-Time Media & Data Protocol',
+    technicalNatureVi:
+      'Giao thức & API truyền thông ngang hàng thời gian thực (Peer-to-Peer Real-Time Media & Data Protocol)',
     accentColor: '#06B6D4',
     badgeClass: 'border-cyan-500/40 bg-cyan-950/60 text-cyan-300',
     borderClass: 'border-cyan-500/40',
     glowClass: 'shadow-cyan-950/50',
     introduction: {
       hookVi:
-        'Lưu ý kỹ thuật cực kỳ quan trọng: OpenAPI KHÔNG phải là một giao thức truyền thông mạng như HTTP hay WebSocket, và bản thân nó KHÔNG tự gửi hay nhận dữ liệu. OpenAPI là bản thiết kế (Blueprint) chuẩn hóa dùng để mô tả một REST API.',
+        'Khác với 6 công nghệ trước vốn đều đi theo mô hình Client–Server (dữ liệu luôn phải đi qua máy chủ trung tâm), WebRTC (Web Real-Time Communication) thiết lập đường truyền trực tiếp từ trình duyệt của người dùng A sang trình duyệt của người dùng B (Peer-to-Peer) trên nền tảng giao thức UDP.',
       problemSolvedVi:
-        'Khi một dự án có hàng chục REST Endpoints, nếu viết tài liệu bằng file Word hay Wiki thủ công thì chỉ sau vài tuần sửa code, tài liệu sẽ lệch hoàn toàn so với thực tế (Documentation Drift), khiến đội Frontend và Mobile gọi sai tham số liên tục.',
+        'Khi gọi Video Call, họp trực tuyến hay chơi game tốc độ cao, nếu mọi khung hình video đều gửi qua TCP lên Server rồi mới vòng xuống người nhận, độ trễ sẽ lên tới hàng trăm mili-giây và hiện tượng nghẽn đầu hàng (TCP Head-of-Line Blocking) sẽ làm hình ảnh bị giật đứng. WebRTC dùng UDP mã hóa (DTLS-SRTP) truyền thẳng giữa 2 thiết bị để đạt độ trễ dưới 30ms.',
       historicalContextVi:
-        'Khởi nguồn từ dự án Swagger năm 2010, sau đó được hiến tặng cho Linux Foundation năm 2015 và đổi tên chính thức thành OpenAPI Specification (OAS 3.0 / 3.1).',
+        'Google mua lại công nghệ của Global IP Solutions (GIPS) và mở mã nguồn dự án WebRTC vào năm 2011; sau đó được W3C và IETF chuẩn hóa tích hợp sẵn trong mọi trình duyệt hiện đại mà không cần cài đặt Flash hay Plugin.',
       coexistenceNoteVi:
-        'OpenAPI là mảnh ghép đồng hành hoàn hảo của REST API. Một file openapi.yaml duy nhất vừa sinh ra trang tài liệu Swagger UI, vừa dùng để cấu hình API Gateway kiểm tra Request tự động, vừa sinh ra TypeScript/Python Client SDK.',
+        'Lưu ý sống còn về cộng sinh kiến trúc: Bản thân WebRTC KHÔNG tự tìm thấy nhau trên Internet. Nó BẮT BUỘC phải mượn một Signaling Server (thường viết bằng WebSocket hoặc REST) ở giai đoạn khởi tạo để hai Peer trao đổi thông tin phiên (SDP Offer/Answer) và tọa độ mạng (ICE Candidates). Sau khi bắt tay xong, luồng Video/Data mới chảy trực tiếp P2P!',
     },
     coreConcepts: [
       {
-        termEn: 'OpenAPI Document (YAML / JSON Blueprint)',
-        titleVi: 'Tài liệu Đặc tả OpenAPI (Hợp đồng Máy đọc được)',
+        termEn: 'Signaling & SDP (Session Description Protocol) Offer/Answer',
+        titleVi: 'Kênh Báo hiệu (Signaling) & Trao đổi SDP Offer/Answer',
         summaryVi:
-          'Một tệp văn bản theo chuẩn YAML hoặc JSON mô tả toàn diện một REST API: máy chủ đích (servers), danh sách đường dẫn (paths), định nghĩa kiểu dữ liệu (components/schemas) và cơ chế bảo mật.',
+          'Trước khi kết nối trực tiếp, Peer A và Peer B phải thống nhất xem mỗi bên hỗ trợ chuẩn nén Video nào (VP8, VP9, H.264, AV1), Audio nào (Opus) và khóa mã hóa là gì thông qua bản mô tả văn bản gọi là SDP.',
         deepDiveVi:
-          'Vì máy tính có thể đọc và phân tích cú pháp file này, toàn bộ quy trình kiểm thử, sinh tài liệu và sinh code có thể tự động hóa 100% trong CI/CD.',
+          'Đặc tả WebRTC cố tình không ép buộc giao thức cho Signaling. Lập trình viên thường dùng một kết nối WebSocket làm Signaling Server: Peer A tạo SDP Offer gửi qua WebSocket cho Peer B; Peer B nhận được và trả lại SDP Answer.',
+        codeSnippet: `v=0
+o=- 4611731400430051336 2 IN IP4 127.0.0.1
+m=video 9 UDP/TLS/RTP/SAVPF 96 98
+a=rtpmap:96 VP9/90000
+a=fingerprint:sha-256 4A:AD:B9:B1:3F...`,
       },
       {
-        termEn: 'Paths, Operations & Parameters',
-        titleVi: 'Đường dẫn (Paths), Thao tác (Operations) & Tham số (Parameters)',
+        termEn: 'NAT Traversal: ICE, STUN & TURN Servers',
+        titleVi: 'Xuyên Tường lửa & NAT với bộ ba ICE, STUN và TURN',
         summaryVi:
-          'Mục paths liệt kê từng URI (ví dụ: /students, /students/{id}); bên dưới mỗi URI là các Operations tương ứng với HTTP Methods (get, post, put, delete) cùng danh sách tham số (path, query, header).',
+          'Hầu hết máy tính và điện thoại đều nằm sau bộ định tuyến Wi-Fi (NAT/Firewall) chỉ có IP nội bộ (như 192.168.1.5) nên không thể kết nối trực tiếp từ Internet vào nếu không có cơ chế xuyên NAT.',
         deepDiveVi:
-          'Mỗi tham số đều được khai báo rõ kiểu dữ liệu (string, integer), có bắt buộc hay không (required: true/false) và ràng buộc giá trị.',
-        codeSnippet: `paths:
-  /students/{id}:
-    get:
-      summary: Tra cứu sinh viên theo mã ID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string`,
+          '1. STUN Server: Giúp mỗi Peer tự hỏi "Địa chỉ IP Public và Port mà Router mở cho tôi là gì?" (Server Reflexive Candidate - srflx, thành công ~80% trường hợp).\n2. TURN Server: Khi gặp tường lửa doanh nghiệp khắt khe (Symmetric NAT) chặn kết nối P2P trực tiếp, TURN đóng vai trò trạm chuyển tiếp (Relay) luồng UDP.\n3. ICE (Interactive Connectivity Establishment): Thuật toán tự động thử mọi cặp tọa độ theo thứ tự ưu tiên: LAN nội bộ (host) → Xuyên NAT qua STUN (srflx) → Chuyển tiếp qua TURN (relay).',
       },
       {
-        termEn: 'Request Bodies, Responses & Reusable Components',
-        titleVi: 'Cấu trúc Request Body, Responses & Tái sử dụng Schemas',
+        termEn: 'RTCPeerConnection & MediaStream (SRTP over UDP)',
+        titleVi: 'Truyền tải Âm thanh & Hình ảnh qua RTCPeerConnection (SRTP/UDP)',
         summaryVi:
-          'Thay vì lặp lại cấu trúc đối tượng Sinh viên ở khắp nơi, OpenAPI cho phép định nghĩa một lần trong components.schemas.Student rồi tham chiếu lại bằng từ khóa $ref.',
+          'API navigator.mediaDevices.getUserMedia() thu nhận luồng Camera/Micro và gắn vào đối tượng RTCPeerConnection để truyền đi dưới dạng các gói tin SRTP (Secure Real-time Transport Protocol) trên nền UDP.',
         deepDiveVi:
-          'Mục responses quy định rõ với mỗi mã HTTP Status Code (200, 201, 400, 404), cấu trúc JSON trả về sẽ tuân theo Schema nào.',
+          'Tại sao dùng UDP thay vì TCP? Trong cuộc gọi trực tuyến, tính thời sự quan trọng hơn việc truyền lại gói tin cũ: nếu rớt 1 khung hình video ở giây trước, trình duyệt bỏ qua luôn để vẽ khung hình mới nhất ngay lập tức thay vì dừng cả video chờ gửi lại như TCP.',
       },
       {
-        termEn: 'Security Schemes',
-        titleVi: 'Khai báo Cơ chế Bảo mật (Security Schemes)',
+        termEn: 'RTCDataChannel (SCTP over DTLS/UDP)',
+        titleVi: 'Kênh Dữ liệu Ngang hàng Tùy ý (RTCDataChannel)',
         summaryVi:
-          'Mô tả rõ API yêu cầu xác thực bằng Bearer JWT, API Key trong Header hay OAuth 2.0 để người dùng và công cụ sinh code tự động đính kèm đúng chuẩn.',
+          'WebRTC không chỉ dùng cho Video/Audio! RTCDataChannel cung cấp một đường ống P2P tốc độ cao để truyền bất kỳ dữ liệu JSON hoặc Binary nào (tọa độ nhân vật game, chia sẻ file P2P, đồng bộ con trỏ chuột) trực tiếp giữa hai trình duyệt.',
         deepDiveVi:
-          'Có thể áp dụng bảo mật ở cấp toàn cục (Global Security) hoặc ghi đè riêng cho từng Endpoint cụ thể.',
+          'RTCDataChannel sử dụng giao thức SCTP đóng gói trong DTLS/UDP, cho phép lập trình viên tự chọn chế độ: Tin cậy & Đúng thứ tự (Reliable & Ordered — giống TCP) hoặc Không cần chờ gửi lại (Unreliable & Unordered — giống UDP thuần cho game hành động).',
       },
       {
-        termEn: 'OpenAPI vs Swagger (Swagger UI & Swagger Editor)',
-        titleVi: 'Phân biệt OpenAPI Specification và Hệ công cụ Swagger',
+        termEn: 'Mandatory Encryption (DTLS & SRTP) & Group Topologies (Mesh / SFU)',
+        titleVi: 'Mã hóa Bắt buộc (DTLS-SRTP) & Mô hình Phòng họp (Mesh vs SFU)',
         summaryVi:
-          'OpenAPI là bản thân quy chuẩn đặc tả (Specification); còn Swagger là tên bộ công cụ làm việc với đặc tả đó (Swagger Editor để soạn thảo, Swagger UI để hiển thị trang tài liệu tương tác, Swagger Codegen để sinh SDK).',
+          'Mọi kết nối WebRTC bắt buộc phải được mã hóa đầu-cuối ở tầng giao vận bằng DTLS (Datagram TLS) và SRTP. Với cuộc gọi nhóm > 4 người, kiến trúc thường chuyển từ P2P Mesh sang máy chủ điều phối SFU (Selective Forwarding Unit).',
         deepDiveVi:
-          'Hiểu ngắn gọn: OpenAPI giống như chuẩn ngôn ngữ HTML5, còn Swagger UI giống như trình duyệt hiển thị file HTML đó.',
+          'Trong mô hình P2P Mesh 4 người, mỗi máy phải mã hóa và tải lên 3 luồng video riêng biệt. Khi họp 50 người (như Google Meet, Zoom), các Peer kết nối WebRTC tới một máy chủ SFU để mỗi người chỉ cần upload 1 luồng và SFU phân phối lại.',
       },
     ],
     architecture: {
       summaryVi:
-        'Kiến trúc "Một hợp đồng — Nhiều đầu ra tự động": OpenAPI Specification (YAML/JSON) → Interactive Documentation (Swagger UI) + API Gateway Request Validation + Client SDK Generation + Server Stub Generation.',
+        'Kiến trúc lai hai pha: Pha 1 dùng WebSocket Signaling Server + STUN để trao đổi SDP & tìm IP Public; Pha 2 mở đường hầm UDP (SRTP/SCTP) kết nối trực tiếp Peer A ⇄ Peer B (hoặc fallback qua TURN Relay nếu tường lửa chặn).',
       nodes: [
         {
-          id: 'oa-spec',
-          label: 'OpenAPI 3.0 Document',
-          sublabel: 'openapi.yaml / .json',
-          role: 'contract',
-          descriptionVi: 'Nguồn chân lý duy nhất (Single Source of Truth) mô tả toàn bộ REST API.',
-          techDetails: 'OpenAPI Specification 3.0/3.1',
-        },
-        {
-          id: 'oa-docs',
-          label: 'Interactive Documentation',
-          sublabel: 'Swagger UI / Redoc',
+          id: 'rtc-peer-a',
+          label: 'Peer A (Caller Browser)',
+          sublabel: 'RTCPeerConnection',
           role: 'client',
-          descriptionVi: 'Tự động dựng giao diện tài liệu trực quan cho phép lập trình viên đọc và thử nghiệm.',
-          techDetails: 'Auto-rendered HTML Docs',
+          descriptionVi: 'Thu luồng Camera/DataChannel, tạo SDP Offer và thu thập ICE Candidates.',
+          techDetails: 'WebRTC Engine (DTLS-SRTP/SCTP)',
         },
         {
-          id: 'oa-validator',
-          label: 'Request / Response Validator',
-          sublabel: 'API Gateway Middleware',
+          id: 'rtc-signaling',
+          label: 'Signaling Server',
+          sublabel: 'WebSocket / REST Channel',
+          role: 'broker',
+          descriptionVi: 'Chuyển tiếp gói văn bản SDP Offer/Answer và danh sách ICE Candidates giữa hai Peer.',
+          techDetails: 'Out-of-band Signaling Relay',
+        },
+        {
+          id: 'rtc-stun-turn',
+          label: 'STUN / TURN Infrastructure',
+          sublabel: 'NAT Traversal & Fallback',
           role: 'gateway',
-          descriptionVi: 'Tự động chặn mọi HTTP Request gửi sai kiểu dữ liệu so với file đặc tả.',
-          techDetails: 'Runtime Schema Guard',
+          descriptionVi: 'STUN khám phá IP/Port công cộng; TURN chuyển tiếp gói UDP nếu tường lửa Symmetric NAT chặn P2P.',
+          techDetails: 'RFC 5389 (STUN) / RFC 5766 (TURN)',
         },
         {
-          id: 'oa-codegen',
-          label: 'SDK & Server Stub Generator',
-          sublabel: 'TypeScript / Python / Go',
-          role: 'server',
-          descriptionVi: 'Tự động sinh hàm gọi API định kiểu mạnh cho Frontend và khung Controller cho Backend.',
-          techDetails: 'OpenAPI Generator CLI',
+          id: 'rtc-peer-b',
+          label: 'Peer B (Callee Browser)',
+          sublabel: 'RTCPeerConnection',
+          role: 'client',
+          descriptionVi: 'Nhận SDP Offer, phản hồi SDP Answer và thiết lập luồng UDP P2P trực tiếp với Peer A.',
+          techDetails: 'WebRTC Engine (DTLS-SRTP/SCTP)',
         },
       ],
       edges: [
         {
-          id: 'o1',
-          from: 'oa-spec',
-          to: 'oa-docs',
-          label: 'Render Live Portal',
-          protocol: 'Doc Engine',
+          id: 'rtc1',
+          from: 'rtc-peer-a',
+          to: 'rtc-signaling',
+          label: '1. Exchange SDP Offer/Answer & ICE (via WebSocket)',
+          protocol: 'WSS / JSON',
+          bidirectional: true,
         },
         {
-          id: 'o2',
-          from: 'oa-spec',
-          to: 'oa-validator',
-          label: 'Enforce Contract Rules',
-          protocol: 'JSON Schema Validation',
+          id: 'rtc2',
+          from: 'rtc-peer-a',
+          to: 'rtc-stun-turn',
+          label: '2. STUN Binding Request / TURN Allocation',
+          protocol: 'UDP / STUN',
+          bidirectional: true,
         },
         {
-          id: 'o3',
-          from: 'oa-spec',
-          to: 'oa-codegen',
-          label: 'Compile Typed Clients & Stubs',
-          protocol: 'AST Codegen',
+          id: 'rtc3',
+          from: 'rtc-peer-a',
+          to: 'rtc-peer-b',
+          label: '3. Direct P2P Media (SRTP) & DataChannel (SCTP)',
+          protocol: 'Direct UDP / DTLS',
+          bidirectional: true,
         },
       ],
     },
     howItWorks: {
       overviewVi:
-        'OpenAPI hỗ trợ hai quy trình phát triển phần mềm hiện đại: Design-First (Viết file OpenAPI trước rồi sinh khung code cho Frontend/Backend làm song song) hoặc Code-First (Viết code Backend có gắn Annotations để tự động xuất ra file OpenAPI).',
+        'Để hai trình duyệt kết nối trực tiếp xuyên qua các lớp Router/Firewall, WebRTC thực thi quy trình bắt tay 4 giai đoạn chặt chẽ.',
       internalMechanismVi: [
-        '1. Định nghĩa Hợp đồng: Khai báo thông tin phiên bản, Paths (/students, /students/{id}), Parameters và Components/Schemas.',
-        '2. Kiểm tra Cú pháp & Lược đồ (Linting): Công cụ phân tích kiểm tra các tham chiếu $ref và tính hợp lệ của tài liệu.',
-        '3. Sinh Tài liệu & SDK: Trình biên dịch đọc cây JSON/YAML của OpenAPI để dựng giao diện Swagger UI và xuất mã nguồn Client SDK.',
-        '4. Giám sát Runtime: API Gateway đối chiếu gói tin HTTP thực tế với Schema trong file OpenAPI.',
+        '1. Khởi tạo & Đàm phán SDP (Signaling): Peer A gọi createOffer() sinh bản mô tả năng lực codec/mã hóa (SDP Offer), lưu vào setLocalDescription() rồi gửi qua WebSocket Signaling Server cho Peer B. Peer B gọi setRemoteDescription(), tạo createAnswer() và gửi ngược về cho Peer A.',
+        '2. Thu thập Tọa độ Mạng (ICE Gathering via STUN/TURN): Song song đó, ICE Agent trong trình duyệt hỏi STUN Server để lấy cặp IP:Port công cộng (srflx) và gửi từng ICE Candidate tìm được sang cho đối phương qua Signaling Server.',
+        '3. Kiểm tra Kết nối & Xuyên lỗ UDP (ICE Connectivity Checks & UDP Hole Punching): Hai bên gửi các gói thăm dò STUN trực tiếp cho nhau để đục lỗ NAT và chọn cặp đường đi có độ trễ thấp nhất (Selected Candidate Pair).',
+        '4. Bắt tay Bảo mật DTLS & Truyền Luồng P2P: Hai Peer xác thực chứng chỉ số khớp với mã băm a=fingerprint trong SDP, mở luồng SRTP (cho Video/Audio) và SCTP (cho RTCDataChannel) truyền thẳng giữa hai máy mà không còn đi qua Signaling Server nữa.',
       ],
     },
     communicationFlow: [
       {
         step: 1,
-        actor: 'API Architect',
-        actionEn: 'Author openapi.json / openapi.yaml',
-        descriptionVi: 'Thiết kế đặc tả cho 4 Endpoints quản lý sinh viên (/students và /students/{id}).',
-        payloadExample: `"openapi": "3.0.3", "paths": { "/students": { "get": ..., "post": ... } }`,
+        actor: 'Peer A → Signaling Server → Peer B',
+        actionEn: 'SDP Offer & Answer Exchange',
+        descriptionVi: 'Hai trình duyệt trao đổi bản mô tả phiên SDP (Codecs VP9/Opus, DTLS Fingerprint) qua kênh WebSocket.',
+        payloadExample: `Signaling JSON: { "type": "offer", "sdp": "v=0\\r\\nm=video 9 UDP/TLS/RTP/SAVPF 96\\r\\na=rtpmap:96 VP9/90000..." }`,
       },
       {
         step: 2,
-        actor: 'Documentation Engine (Swagger UI)',
-        actionEn: 'Parse Spec & Render Interactive UI',
-        descriptionVi: 'Đọc file đặc tả và tự động hiển thị danh sách Endpoints, bảng tham số và mẫu Response.',
-        payloadExample: `Rendered Endpoints: GET /students | POST /students | GET /students/{id} | PUT /students/{id}`,
+        actor: 'Peer A & B ⇄ STUN Server',
+        actionEn: 'Gather ICE Candidates (NAT Discovery)',
+        descriptionVi: 'Mỗi Peer hỏi STUN Server để khám phá địa chỉ IP Public/Port ánh xạ qua Router NAT của mình.',
+        payloadExample: `a=candidate:842163049 1 udp 1677729535 203.113.148.22 54321 typ srflx raddr 192.168.1.10 rport 51002`,
       },
       {
         step: 3,
-        actor: 'Codegen Engine',
-        actionEn: 'Generate Typed Client SDK',
-        descriptionVi: 'Tự động sinh các hàm TypeScript Fetch có kiểm tra kiểu dữ liệu cho đội Frontend.',
-        payloadExample: `export async function getStudents(params: GetStudentsQuery): Promise<Student[]>`,
+        actor: 'Peer A ⇄ Peer B (Direct UDP)',
+        actionEn: 'ICE Connectivity Check & DTLS Handshake',
+        descriptionVi: 'Đục lỗ UDP NAT thành công (UDP Hole Punching) và hoàn tất bắt tay khóa mã hóa DTLS-SRTP.',
+        payloadExample: `[ICE] Selected Pair: 203.113.148.22:54321 <-> 118.70.12.99:60112 (STATE: connected, RTT: 14ms)`,
       },
       {
         step: 4,
-        actor: 'API Gateway Validator',
-        actionEn: 'Validate Incoming HTTP Requests',
-        descriptionVi: 'Đảm bảo mọi request thực tế gửi tới REST Server đều tuân thủ đúng Schema đã cam kết.',
-        payloadExample: `[OPENAPI-GUARD] Incoming POST /students matches CreateStudentSchema -> Allowed.`,
+        actor: 'Peer A ⇄ Peer B (P2P Stream)',
+        actionEn: 'Direct P2P SRTP Media & SCTP DataChannel',
+        descriptionVi: 'Truyền trực tiếp khung hình Video/Audio và gói tin RTCDataChannel ngang hàng không qua Server trung gian.',
+        payloadExample: `P2P UDP Stream: [SRTP Video 1080p@60fps | 2.4 Mbps] + [SCTP DataChannel: {"cursorX":420,"cursorY":180}]`,
       },
     ],
     practicalExample: {
-      scenarioTitleVi: 'Đặc tả Hệ thống Quản lý Sinh viên (Student Management REST API Specification)',
+      scenarioTitleVi: 'Thiết lập Kết nối Ngang hàng Video & RTCDataChannel (P2P Telehealth & Collaboration)',
       scenarioDescriptionVi:
-        'Sử dụng một tài liệu OpenAPI 3.0 duy nhất để mô tả đầy đủ 4 Endpoints: GET /students, GET /students/{id}, POST /students và PUT /students/{id}.',
+        'Cài đặt luồng bắt tay RTCPeerConnection tiêu chuẩn kết hợp STUN Server, xử lý ICE Candidates và mở kênh truyền dữ liệu P2P độ trễ thấp.',
       codeExamples: [
         {
-          titleVi: 'Đặc tả OpenAPI 3.0 cho Student Management API (YAML)',
-          language: 'yaml',
+          titleVi: 'Khởi tạo RTCPeerConnection, SDP Offer & RTCDataChannel (TypeScript)',
+          language: 'typescript',
           descriptionVi:
-            'Minh họa cách kết hợp Paths, Parameters, RequestBody, Responses và tái sử dụng Schema với $ref.',
-          code: `openapi: 3.0.3
-info:
-  title: Student Management REST API
-  version: 1.2.0
-paths:
-  /students:
-    get:
-      summary: Lấy danh sách sinh viên
-      parameters:
-        - name: department
-          in: query
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Danh sách sinh viên
-    post:
-      summary: Tạo hồ sơ sinh viên mới
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/StudentInput'
-      responses:
-        '201':
-          description: Đã tạo thành công
-  /students/{id}:
-    get:
-      summary: Xem chi tiết sinh viên theo ID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Thông tin chi tiết sinh viên
-    put:
-      summary: Cập nhật hồ sơ sinh viên
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Đã cập nhật
-components:
-  schemas:
-    StudentInput:
-      type: object
-      required: [fullName, email, major]
-      properties:
-        fullName:
-          type: string
-        email:
-          type: string
-        major:
-          type: string`,
+            'Minh họa cách trình duyệt kết hợp WebSocket làm kênh báo hiệu (Signaling) để mở đường truyền P2P trực tiếp.',
+          code: `const rtcConfig: RTCConfiguration = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    // Dự phòng TURN Server khi gặp tường lửa Symmetric NAT chặn P2P
+    {
+      urls: 'turn:turn.enterprise-lab.vn:3478',
+      username: 'webrtc_user',
+      credential: 'turn_secret_key'
+    }
+  ]
+};
+
+export async function startPeerConnection(signalingWs: WebSocket) {
+  const pc = new RTCPeerConnection(rtcConfig);
+
+  // 1. Tạo kênh dữ liệu P2P (RTCDataChannel) truyền qua SCTP/UDP
+  const dataChannel = pc.createDataChannel('telemetry-sync', {
+    ordered: false,       // Không chờ sắp xếp lại thứ tự để ưu tiên độ trễ thấp nhất
+    maxRetransmits: 0     // Chế độ UDP thuần cho đồng bộ trạng thái thời gian thực
+  });
+  dataChannel.onopen = () => dataChannel.send(JSON.stringify({ ping: Date.now() }));
+
+  // 2. Khi tìm thấy tọa độ mạng (ICE Candidate), gửi sang Peer kia qua Signaling
+  pc.onicecandidate = (event) => {
+    if (event.candidate) {
+      signalingWs.send(JSON.stringify({
+        type: 'ice-candidate',
+        candidate: event.candidate
+      }));
+    }
+  };
+
+  // 3. Tạo SDP Offer và gửi qua Signaling Server
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  signalingWs.send(JSON.stringify({ type: 'sdp-offer', sdp: offer.sdp }));
+
+  return pc;
+}`,
           annotations: [
             {
-              lineHint: '$ref: "#/components/schemas/StudentInput"',
+              lineHint: 'iceServers: [stun:..., turn:...]',
               explanationVi:
-                'Tham chiếu tới Schema dùng chung ở cuối file giúp tránh lặp lại định nghĩa đối tượng ở nhiều Endpoints.',
+                'Cung cấp STUN để tìm IP công cộng cho kết nối P2P trực tiếp, và TURN làm phương án dự phòng khi tường lửa chặn UDP trực tiếp.',
             },
             {
-              lineHint: 'in: path / in: query',
+              lineHint: 'pc.createDataChannel("telemetry-sync", ...)',
               explanationVi:
-                'Phân biệt rõ tham số nào nằm trên đường dẫn URI ({id}) và tham số nào nằm trên chuỗi truy vấn (?department=...).',
+                'Mở kênh truyền dữ liệu nhị phân/văn bản trực tiếp giữa 2 trình duyệt mà không đi qua máy chủ.',
             },
           ],
         },
@@ -841,53 +817,54 @@ components:
     },
     useCases: [
       {
-        titleVi: 'Phát triển Song song Frontend & Backend (Contract-First Development)',
-        industry: 'Software Engineering Teams',
+        titleVi: 'Họp Trực tuyến, Khám bệnh Từ xa (Telehealth) & Livestream Độ trễ Dưới 1 Giây',
+        industry: 'Telecommunications / Healthcare / EdTech',
         descriptionVi:
-          'Thống nhất file OpenAPI ngay từ đầu Sprint để Frontend sinh Mock Server & TypeScript SDK làm việc ngay mà không cần đợi Backend code xong.',
+          'Gọi Video/Audio hai chiều và chia sẻ màn hình tương tác trực tiếp (như Google Meet, Discord Voice, Messenger Call).',
         whyItFitsVi:
-          'Loại bỏ điểm nghẽn chờ đợi và xung đột tên trường giữa các nhóm.',
+          'Bộ xử lý âm thanh/hình ảnh tích hợp sẵn khả năng khử tiếng vọng (AEC), chống nhiễu và tự động điều chỉnh bitrate theo chất lượng mạng UDP.',
       },
       {
-        titleVi: 'Cổng Tài liệu Nhà phát triển (Developer Portal) & Kiểm thử Tự động',
-        industry: 'Fintech / Open Banking / SaaS',
+        titleVi: 'Chia sẻ Tệp tin P2P, Cloud Gaming & Đồng bộ Trạng thái Đa người chơi',
+        industry: 'Gaming / P2P File Sharing / Collaborative Design',
         descriptionVi:
-          'Xuất bản cổng tài liệu API tương tác luôn đồng bộ 100% với mã nguồn thực tế.',
+          'Truyền file dung lượng lớn trực tiếp giữa 2 máy tính trong mạng LAN/Internet hoặc stream khung hình từ máy chủ Cloud Gaming (GeForce Now, Parsec).',
         whyItFitsVi:
-          'Một file đặc tả duy nhất phục vụ cả hiển thị tài liệu, kiểm thử hợp đồng (Contract Testing) và cấu hình Firewall/Gateway.',
+          'RTCDataChannel giải phóng hoàn toàn chi phí băng thông cho máy chủ trung tâm và loại bỏ hiện tượng nghẽn đầu hàng của TCP.',
       },
     ],
     WhenNotToUseVi: [
-      'Khi bạn cần mô tả các hệ thống hướng sự kiện qua Kafka/RabbitMQ/WebSocket (khi đó nên dùng chuẩn anh em của nó là AsyncAPI Specification).',
-      'Khi hệ thống sử dụng GraphQL hoặc gRPC (vì GraphQL đã có sẵn SDL Schema và gRPC đã có sẵn file .proto).',
+      'Các thao tác gọi API nghiệp vụ thông thường (Đăng nhập, Đặt hàng, Lưu cơ sở dữ liệu) — bắt buộc phải đi qua Backend Server bằng REST, GraphQL hoặc gRPC.',
+      'Chat văn bản thông thường cần lưu lịch sử tập trung trên Server cho hàng ngàn người đọc lại (WebSocket phù hợp và đơn giản hơn nhiều).',
     ],
     advantages: [
-      'Chuẩn công nghiệp toàn cầu cho việc mô tả và chuẩn hóa REST API.',
-      'Tự động hóa việc sinh tài liệu tương tác, Client SDK cho hàng chục ngôn ngữ và Mock Server.',
-      'Giúp phát hiện sớm các thay đổi gây lỗi tương thích ngược (Breaking Changes) trong quy trình CI/CD.',
+      'Độ trễ thấp nhất trong mọi công nghệ Web nhờ đường truyền trực tiếp P2P và giao vận UDP (không bị TCP Head-of-Line Blocking).',
+      'Tiết kiệm chi phí băng thông máy chủ khổng lồ khi truyền Video/File trực tiếp giữa các thiết bị người dùng.',
+      'Tích hợp sẵn bộ engine xử lý đa phương tiện chuyên nghiệp (Opus, VP9/AV1, chống vọng âm, thích ứng băng thông) và mã hóa bắt buộc DTLS-SRTP.',
     ],
     limitations: [
-      'File YAML/JSON có thể trở nên rất dài nếu viết thủ công cho hệ thống có hàng trăm Endpoints mà không tách module ($ref).',
-      'Chỉ mô tả các API dựa trên HTTP/REST, không thay thế cho đặc tả nhị phân của gRPC hay luồng sự kiện Message Broker.',
+      'Quy trình bắt tay phức tạp nhất: Bắt buộc phải dựng riêng Signaling Server (WebSocket), cấu hình STUN và duy trì cụm TURN Server tốn băng thông khi xuyên NAT thất bại.',
+      'Mô hình P2P Mesh thuần túy không mở rộng được cho phòng họp đông người (> 6 người) nếu không triển khai thêm máy chủ điều phối SFU/MCU.',
+      'Kết nối P2P trực tiếp sẽ làm lộ địa chỉ IP công cộng giữa hai Peer nếu không cấu hình chính sách chỉ đi qua TURN Relay (iceTransportPolicy: "relay").',
     ],
     relatedComparisons: [
       {
-        comparedWith: 'WSDL (của SOAP) & .proto (của gRPC)',
+        comparedWith: 'WebSocket API',
         keyDifferenceVi:
-          'OpenAPI đóng vai trò hợp đồng đặc tả cho REST/JSON giống như cách WSDL mô tả cho SOAP/XML và file .proto mô tả cho gRPC.',
+          'WebSocket là kết nối Client ⇄ Server qua giao thức TCP (đảm bảo thứ tự tin nhắn nhưng trễ hơn khi rớt gói); WebRTC là kết nối Peer A ⇄ Peer B qua giao thức UDP (tối ưu cho Media Stream & P2P DataChannel độ trễ cực thấp).',
         whenToChooseThisVi:
-          'Khi kiến trúc của bạn sử dụng RESTful HTTP APIs.',
+          'Khi truyền luồng Video/Audio thời gian thực, chia sẻ màn hình, gọi thoại hoặc truyền file/tọa độ game P2P.',
         whenToChooseOtherVi:
-          'Khi sử dụng gRPC (.proto) hoặc SOAP (WSDL).',
+          'Khi truyền tin nhắn chat, thông báo hệ thống hoặc bảng giá cần máy chủ trung tâm kiểm soát và điều phối qua TCP.',
       },
     ],
     misconceptions: [
       {
-        mythVi: '“OpenAPI là một loại giao thức API cạnh tranh với REST hoặc WebSocket.”',
+        mythVi: '“WebRTC là công nghệ P2P hoàn toàn nên không cần bất kỳ máy chủ (Server) nào để hoạt động.”',
         realityVi:
-          'OpenAPI hoàn toàn không phải là giao thức truyền dữ liệu. Nó là ngôn ngữ đặc tả dùng để viết bản thiết kế cho REST API.',
+          'Sai! Dù luồng Video/Data chạy P2P, bạn vẫn bắt buộc phải có: (1) Signaling Server (thường dùng WebSocket) để hai bên trao đổi SDP ban đầu, (2) STUN Server để tìm IP công cộng, và (3) TURN Server để chuyển tiếp gói tin cho ~15–20% người dùng nằm sau tường lửa nghiêm ngặt.',
         technicalProofVi:
-          'Bạn không thể "gửi một gói tin bằng giao thức OpenAPI"; bạn gửi gói tin bằng HTTP theo kiến trúc REST đã được mô tả trong file OpenAPI.',
+          'Đặc tả W3C WebRTC 1.0 quy định rõ RTCPeerConnection không thể khởi tạo kết nối nếu không được cung cấp SDP từ kênh Signaling bên ngoài.',
       },
     ],
   },

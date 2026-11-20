@@ -20,7 +20,7 @@ Tài liệu này lưu lại toàn bộ quyết định kỹ thuật, trạng th�
 
 ## 2. Quyết định kiến trúc & Công nghệ (Key Decisions)
 
-- **Mục tiêu dự án:** Nền tảng học tập kỹ thuật tương tác (**API Visual Lab — Interactive API Learning Platform**) giảng dạy lý thuyết, kiến trúc, luồng gói tin và mô phỏng thực hành cho 7 công nghệ/đặc tả API: **REST API, SOAP API, GraphQL API, gRPC API, WebSocket API, Webhook, và OpenAPI Specification** bằng tiếng Việt (giữ nguyên thuật ngữ kỹ thuật tiếng Anh).
+- **Mục tiêu dự án:** Nền tảng học tập kỹ thuật tương tác (**API Visual Lab — Interactive API Learning Platform**) giảng dạy lý thuyết, kiến trúc, luồng gói tin và mô phỏng thực hành cho 7 công nghệ/giao thức API: **REST API, SOAP API, GraphQL API, gRPC API, WebSocket API, Webhook, và WebRTC API** bằng tiếng Việt (giữ nguyên thuật ngữ kỹ thuật tiếng Anh).
 - **Core Stack & Framework:**
   - **Next.js 15 (App Router)** + **React 19** + **TypeScript 5.7 (Strict Mode)**.
   - **Tailwind CSS 3.4** + **Lucide React** (giao diện kỹ thuật Engineering Dark Blueprint).
@@ -55,7 +55,10 @@ Tài liệu này lưu lại toàn bộ quyết định kỹ thuật, trạng th�
   - Kết quả kiểm thử: `10/10 tests pass, typecheck sạch`.
 
 - **[x] Phase 4 & Phase 5 — Real-World Scenario Lab, Comparison Center, Knowledge Assessment & Verification** (Commit `1d5382e` — `feat/add scenarios comparison assessment and docs`):
-  - **Real-World Scenario Lab (`/scenarios`):** 6 kịch bản kiến trúc thực tế (E-Commerce, Real-Time Chat, Microservices gRPC, Data Aggregation GraphQL, Enterprise Banking SOAP, Contract-First OpenAPI) kèm mô phỏng luồng gói tin đa nút.
+  - **Real-World Scenario Lab (`/scenarios`):** 6 kịch bản kiến trúc thực tế (E-Commerce, Real-Time Chat, Microservices gRPC, Data Aggregation GraphQL, Enterprise Banking SOAP, Telehealth P2P Video Consultation WebRTC) kèm mô phỏng luồng gói tin đa nút.
   - **Comparison Center (`/comparison`):** Ma trận đối chiếu 9 chiều kỹ thuật, Sơ đồ Kiến trúc Cộng sinh 7 công nghệ (Coexistence Blueprint) và Công cụ Tư vấn Ra quyết định chọn công nghệ.
   - **Knowledge Assessment (`/assessment`):** Hệ thống kiểm tra 3 dạng câu hỏi (Multiple Choice, Technical Understanding, Scenario-Based) với chấm điểm và giải thích tức thì.
   - **Verification:** `13/13 Vitest tests pass`, `tsc --noEmit` 0 lỗi, `next build` thành công toàn bộ routes.
+
+- **[x] Update — Đổi chuyên đề 7 từ OpenAPI Specification sang WebRTC API**:
+  - Thay thế hoàn toàn OpenAPI bằng **WebRTC API** (`P2P Real-Time Media & Data Protocol`) trên toàn bộ hệ thống kiểu dữ liệu, trang chủ, Module 7 (`/modules/webrtc`), bộ mô phỏng WebRTC (SDP Offer/Answer, ICE/STUN/TURN NAT Traversal & P2P RTCDataChannel), Scenario 6 (Telehealth WebRTC + WebSocket Signaling), Bảng so sánh 9 chiều, và bộ câu hỏi đánh giá.

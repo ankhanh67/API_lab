@@ -37,13 +37,13 @@ const COEXISTENCE_BLUEPRINT_ZONES: CoexistenceZone[] = [
       'Client gửi HTTP Request kèm JSON; Gateway kiểm tra JWT và trả về Status Codes chuẩn.',
   },
   {
-    id: 'openapi',
-    zoneLabel: '2. Hợp đồng & Cổng Tài liệu (API Contract Layer)',
-    systemComponent: 'openapi.yaml → Swagger UI + Gateway Validator + SDK Codegen',
+    id: 'webrtc',
+    zoneLabel: '2. Tư vấn Video Trực tiếp & Chia sẻ Màn hình P2P (Direct UDP Media/Data)',
+    systemComponent: 'Customer Browser ⇄ STUN/TURN ⇄ Support Agent Browser',
     roleInSystemVi:
-      'OpenAPI không truyền dữ liệu trên mạng mà mô tả toàn bộ cấu trúc của tầng REST API phía trên, giúp tự động sinh tài liệu và kiểm tra Schema.',
+      'Khi khách hàng nhấn nút "Gọi Video tư vấn sản phẩm trực tiếp", WebRTC thiết lập đường truyền UDP ngang hàng (Peer-to-Peer) truyền Video/Audio (SRTP) và đồng bộ con trỏ hướng dẫn (RTCDataChannel) không tốn băng thông Backend.',
     interactionFlowVi:
-      'Đội Frontend dùng TypeScript SDK sinh từ file OpenAPI để gọi REST API không bao giờ sai kiểu dữ liệu.',
+      'WebRTC mượn kênh WebSocket ở tầng 4 làm Signaling Server để trao đổi SDP Offer/Answer và ICE Candidates trước khi mở luồng P2P trực tiếp.',
   },
   {
     id: 'graphql',
@@ -100,7 +100,7 @@ export default function ComparisonCenterPage() {
     'grpc',
     'websocket',
     'webhook',
-    'openapi',
+    'webrtc',
   ]);
   const [selectedCoexistId, setSelectedCoexistId] =
     useState<ApiTechnologyId>('rest');
@@ -198,10 +198,11 @@ export default function ComparisonCenterPage() {
             <AlertCircle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
             <p className="leading-relaxed">
               <strong>Nguyên tắc Chính xác Kỹ thuật:</strong> Tránh các phép so sánh khập
-              khiễng. Ví dụ: <strong>OpenAPI Specification</strong> là một tiêu chuẩn mô tả
-              hợp đồng tài liệu cho REST API, không phải là giao thức truyền gói tin nên
-              không xếp hạng đua tốc độ truyền tải mạng thô với{' '}
-              <strong>WebSocket</strong> hay <strong>gRPC</strong>.
+              khiễng. Ví dụ: <strong>WebRTC</strong> là giao thức truyền tải Media/Data
+              ngang hàng (Peer-to-Peer) trên nền UDP và vẫn cần{' '}
+              <strong>WebSocket</strong> hoặc <strong>REST</strong> làm kênh báo hiệu
+              (Signaling Server) để trao đổi SDP ban đầu, chứ không phải là công nghệ thay
+              thế cho REST hay GraphQL trong việc truy vấn Cơ sở dữ liệu.
             </p>
           </div>
 

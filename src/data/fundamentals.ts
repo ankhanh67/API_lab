@@ -399,7 +399,7 @@ export const DATA_FORMATS_COMPARISON = [
   {
     id: 'json',
     name: 'JSON (JavaScript Object Notation)',
-    usedBy: 'REST, GraphQL, Webhook, WebSocket, OpenAPI',
+    usedBy: 'REST, GraphQL, Webhook, WebSocket, WebRTC Signaling (SDP Wrapper)',
     characteristicsVi:
       'Định dạng văn bản nhẹ, dễ đọc với con người, hỗ trợ trực tiếp bởi mọi ngôn ngữ lập trình và trình duyệt web.',
     serializationNoteVi:

@@ -125,7 +125,7 @@ export default function LandingPage() {
                 <span className="font-semibold text-white">
                   REST, SOAP, GraphQL, gRPC, WebSocket, Webhook
                 </span>{' '}
-                và <span className="font-semibold text-white">OpenAPI</span>.
+                và <span className="font-semibold text-white">WebRTC</span>.
               </p>
 
               {/* CTAs */}
@@ -298,8 +298,8 @@ export default function LandingPage() {
             </h2>
             <p className="text-sm text-slate-300 leading-relaxed">
               Một sai lầm phổ biến của người mới học là đặt câu hỏi{' '}
-              <em>&ldquo;Nên chọn OpenAPI hay WebSocket?&rdquo;</em> hoặc{' '}
-              <em>&ldquo;Webhook có nhanh hơn REST không?&rdquo;</em>. Thực tế, mỗi công
+              <em>&ldquo;Nên chọn WebRTC hay REST?&rdquo;</em> hoặc{' '}
+              <em>&ldquo;Webhook có nhanh hơn WebSocket không?&rdquo;</em>. Thực tế, mỗi công
               nghệ thuộc một <strong className="text-white">bản chất kỹ thuật</strong> khác
               nhau và thường <strong className="text-white">cùng tồn tại (coexist)</strong>{' '}
               trong cùng một kiến trúc phần mềm hiện đại.

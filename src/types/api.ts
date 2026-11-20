@@ -5,7 +5,7 @@ export type ApiTechnologyId =
   | 'grpc'
   | 'websocket'
   | 'webhook'
-  | 'openapi';
+  | 'webrtc';
 
 export type TechnicalNature =
   | 'Architectural Style'
@@ -14,7 +14,7 @@ export type TechnicalNature =
   | 'RPC Framework'
   | 'Communication Protocol'
   | 'Event-Driven Callback Mechanism'
-  | 'API Description Specification';
+  | 'P2P Real-Time Media & Data Protocol';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 

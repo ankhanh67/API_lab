@@ -23,7 +23,7 @@ describe('Phase 1 Foundation & API Fundamentals', () => {
       'grpc:RPC Framework',
       'websocket:Communication Protocol',
       'webhook:Event-Driven Callback Mechanism',
-      'openapi:API Description Specification',
+      'webrtc:P2P Real-Time Media & Data Protocol',
     ]);
   });
 

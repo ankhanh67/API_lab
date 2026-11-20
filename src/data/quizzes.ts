@@ -419,43 +419,76 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
   },
 
   // ==========================================================================
-  // OPENAPI SPECIFICATION QUESTIONS
+  // WEBRTC API QUESTIONS
   // ==========================================================================
   {
-    id: 'q-openapi-1',
-    moduleId: 'openapi',
-    type: 'multiple-choice',
+    id: 'q-webrtc-1',
+    moduleId: 'webrtc',
+    type: 'technical-understanding',
     questionVi:
-      'Phát biểu nào sau đây mô tả CHÍNH XÁC nhất bản chất kỹ thuật của OpenAPI Specification?',
+      'Tại sao một ứng dụng WebRTC (vốn truyền Video/Audio trực tiếp Peer-to-Peer qua UDP) vẫn BẮT BUỘC phải sử dụng một Signaling Server (thường viết bằng WebSocket) và hệ thống STUN/TURN?',
     options: [
       {
         id: 'a',
         textVi:
-          'OpenAPI là tiêu chuẩn đặc tả (YAML/JSON) dùng để mô tả cấu trúc, endpoints, tham số và dữ liệu của REST API; bản thân OpenAPI không trực tiếp thực thi truyền thông mạng.',
+          'Vì hai trình duyệt không thể tự biết địa chỉ của nhau: Cần Signaling Server để trao đổi bản mô tả phiên (SDP Offer/Answer), cần STUN để khám phá địa chỉ IP/Port công cộng phía sau Router NAT, và cần TURN để chuyển tiếp gói tin nếu tường lửa Symmetric NAT chặn kết nối P2P trực tiếp.',
         isCorrect: true,
       },
       {
         id: 'b',
         textVi:
-          'OpenAPI là một giao thức truyền tải nhị phân tốc độ cao dùng để thay thế hoàn toàn HTTP và TCP.',
+          'Vì WebRTC chỉ có thể truyền dữ liệu dưới dạng bức điện XML SOAP qua máy chủ STUN.',
         isCorrect: false,
       },
       {
         id: 'c',
         textVi:
-          'OpenAPI là một cơ sở dữ liệu đồ thị tương tự như Neo4j.',
+          'Vì STUN Server dùng để lưu trữ cơ sở dữ liệu SQL của ứng dụng.',
         isCorrect: false,
       },
       {
         id: 'd',
         textVi:
-          'OpenAPI chỉ dùng được cho ngôn ngữ Java và không hỗ trợ JSON.',
+          'Vì trình duyệt Web không hỗ trợ giao thức UDP nếu không cài thêm Flash Player.',
         isCorrect: false,
       },
     ],
     explanationVi:
-      'OpenAPI là một API Description Specification (bản thiết kế hợp đồng). Từ file OpenAPI, chúng ta có thể sinh tài liệu Swagger UI, tự động kiểm tra tính hợp lệ của Request và sinh Client SDK cho nhiều ngôn ngữ.',
-    recommendationVi: 'Thử chỉnh sửa file đặc tả và xem SDK sinh tự động trong OpenAPI Playground (Module 7).',
+      'Quá trình kết nối WebRTC gồm 2 pha: Pha bắt tay ban đầu bắt buộc dùng Signaling Server (WebSocket/REST) để trao đổi SDP (Codecs, khóa DTLS) cùng các ứng viên mạng ICE (thu thập qua STUN/TURN); sau khi đục lỗ NAT thành công, pha truyền tải Media (SRTP) và DataChannel (SCTP) mới chảy trực tiếp P2P qua UDP.',
+    recommendationVi: 'Thử chuyển đổi giữa 3 địa hình mạng (LAN Host, Cone NAT STUN, Symmetric Firewall TURN) trong WebRTC Playground (Module 7).',
+  },
+  {
+    id: 'q-webrtc-2',
+    moduleId: 'webrtc',
+    type: 'scenario-based',
+    questionVi:
+      'Bạn đang xây dựng nền tảng Khám bệnh Từ xa (Telehealth) yêu cầu truyền hình ảnh Video 1080p, âm thanh hai chiều giữa Bác sĩ và Bệnh nhân với độ trễ dưới 25ms, kèm theo kênh truyền trực tiếp chỉ số cảm biến nhịp tim mà không làm nghẽn băng thông máy chủ trung tâm. Công nghệ nào là lựa chọn chuẩn xác nhất?',
+    options: [
+      {
+        id: 'a',
+        textVi:
+          'WebRTC API (RTCPeerConnection cho luồng SRTP Video/Audio + RTCDataChannel cho luồng cảm biến P2P, kết hợp WebSocket làm Signaling)',
+        isCorrect: true,
+      },
+      {
+        id: 'b',
+        textVi: 'SOAP API qua HTTP/1.1',
+        isCorrect: false,
+      },
+      {
+        id: 'c',
+        textVi: 'REST API với phương thức GET Polling mỗi giây',
+        isCorrect: false,
+      },
+      {
+        id: 'd',
+        textVi: 'Webhook một chiều',
+        isCorrect: false,
+      },
+    ],
+    explanationVi:
+      'WebRTC là công nghệ Web duy nhất hỗ trợ truyền tải luồng Media (SRTP) và dữ liệu tùy ý (RTCDataChannel/SCTP) trực tiếp trình duyệt-tới-trình duyệt trên nền giao thức UDP, loại bỏ hiện tượng nghẽn đầu hàng (TCP Head-of-Line Blocking) và giải phóng băng thông cho máy chủ.',
+    recommendationVi: 'Xem Kịch bản 6: Telehealth & Real-Time Video Consultation Platform trong mục Kiến trúc Thực tế (/scenarios).',
   },
 
   // ==========================================================================
@@ -466,12 +499,12 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
     moduleId: 'comprehensive',
     type: 'scenario-based',
     questionVi:
-      'Trong một nền tảng Thương mại điện tử quy mô lớn, các công nghệ API có thể cùng tồn tại (Coexist) và phối hợp với nhau như thế nào là hợp lý nhất về mặt kiến trúc?',
+      'Trong một nền tảng Thương mại điện tử & Tư vấn trực tuyến quy mô lớn, các công nghệ API có thể cùng tồn tại (Coexist) và phối hợp với nhau như thế nào là hợp lý nhất về mặt kiến trúc?',
     options: [
       {
         id: 'a',
         textVi:
-          'Dùng REST (kèm tài liệu OpenAPI) cho các thao tác sản phẩm/đơn hàng từ Web/Mobile; dùng gRPC cho giao tiếp tốc độ cao giữa các Microservices nội bộ; dùng Webhook để nhận thông báo từ cổng thanh toán; và dùng WebSocket để đẩy thông báo trạng thái đơn hàng thời gian thực lên màn hình người dùng.',
+          'Dùng REST/GraphQL cho thao tác sản phẩm & đơn hàng; dùng gRPC cho giao tiếp tốc độ cao giữa các Microservices nội bộ; dùng Webhook để nhận thông báo từ cổng thanh toán; dùng WebSocket cho thông báo đẩy & báo hiệu (Signaling); và dùng WebRTC cho cuộc gọi Video tư vấn trực tiếp P2P.',
         isCorrect: true,
       },
       {
@@ -483,18 +516,18 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
       {
         id: 'c',
         textVi:
-          'Dùng OpenAPI để truyền luồng video thời gian thực và dùng WebSocket để viết tài liệu tĩnh.',
+          'Dùng SOAP XML để truyền luồng video 60fps giữa hai trình duyệt và dùng WebRTC để truy vấn bảng SQL.',
         isCorrect: false,
       },
       {
         id: 'd',
         textVi:
-          'Dùng SOAP XML cho mọi sự kiện con trỏ chuột trên trình duyệt.',
+          'Dùng Webhook để gọi trực tiếp vào trình duyệt người dùng cuối mà không cần máy chủ.',
         isCorrect: false,
       },
     ],
     explanationVi:
-      'Không có công nghệ nào là "viên đạn bạc" cho mọi bài toán. Kiến trúc phần mềm hiện đại luôn phối hợp đúng công cụ cho đúng tầng: REST/GraphQL + OpenAPI ở biên ứng dụng, gRPC ở lõi Microservices, Webhook cho tích hợp sự kiện liên hệ thống và WebSocket cho kết nối thời gian thực với người dùng.',
+      'Không có công nghệ nào là "viên đạn bạc" cho mọi bài toán. Kiến trúc phần mềm hiện đại luôn phối hợp đúng công cụ cho đúng tầng: REST/GraphQL ở biên ứng dụng, gRPC ở lõi Microservices, Webhook cho sự kiện liên hệ thống, WebSocket cho kết nối hai chiều với Server và WebRTC cho truyền thông Media/Data ngang hàng P2P.',
     recommendationVi: 'Khám phá Sơ đồ Cộng sinh Công nghệ trong Trung tâm So sánh (/comparison).',
   },
 ];

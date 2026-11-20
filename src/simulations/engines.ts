@@ -1507,158 +1507,197 @@ export function simulateWebhookDelivery(params: {
 }
 
 // ============================================================================
-// 7. MODULE 7: OPENAPI SPECIFICATION PARSER & GENERATOR ENGINE
+// 7. MODULE 7: WEBRTC P2P SIGNALING, ICE/STUN/TURN & MEDIA/DATACHANNEL ENGINE
 // ============================================================================
 
-export interface ParsedOpenApiEndpoint {
-  path: string;
-  method: HttpMethod;
-  summary: string;
-  parameters: string[];
-  requestSchema?: string;
-  responseCode: string;
-  responseDescription: string;
+export type WebRtcNatTopology =
+  | 'lan-host'
+  | 'cone-nat-stun'
+  | 'symmetric-nat-turn';
+
+export type WebRtcVideoCodec = 'VP9' | 'H264' | 'AV1';
+
+export interface WebRtcIceCandidateItem {
+  id: string;
+  peer: 'Peer A' | 'Peer B';
+  type: 'host' | 'srflx' | 'relay';
+  ipPort: string;
+  priority: number;
+  selected: boolean;
+  descriptionVi: string;
 }
 
-export interface OpenApiParseResult {
-  isValid: boolean;
-  title: string;
-  version: string;
-  errorMessage?: string;
-  endpoints: ParsedOpenApiEndpoint[];
-  generatedTypeScriptSdk: string;
+export interface WebRtcSimulationResult {
+  natTopology: WebRtcNatTopology;
+  videoCodec: WebRtcVideoCodec;
+  enableVideo: boolean;
+  enableAudio: boolean;
+  enableDataChannel: boolean;
+  isDirectP2P: boolean;
+  activePathLabel: string;
+  estimatedRttMs: number;
+  sdpOfferText: string;
+  sdpAnswerText: string;
+  iceCandidates: WebRtcIceCandidateItem[];
+  handshakeStages: {
+    stage: number;
+    title: string;
+    detailVi: string;
+  }[];
 }
 
-export const DEFAULT_OPENAPI_SPEC_JSON = JSON.stringify(
-  {
-    openapi: '3.0.3',
-    info: {
-      title: 'Student Management REST API',
-      version: '1.2.0',
-      description: 'Đặc tả chuẩn hóa cho hệ thống quản lý hồ sơ sinh viên.',
+export function simulateWebRtcSession(params: {
+  natTopology: WebRtcNatTopology;
+  videoCodec: WebRtcVideoCodec;
+  enableVideo: boolean;
+  enableAudio: boolean;
+  enableDataChannel: boolean;
+}): WebRtcSimulationResult {
+  const isDirectP2P = params.natTopology !== 'symmetric-nat-turn';
+
+  const activePathLabel =
+    params.natTopology === 'lan-host'
+      ? 'Direct Local LAN P2P (Peer A 192.168.1.10 ⇄ Peer B 192.168.1.25 via UDP)'
+      : params.natTopology === 'cone-nat-stun'
+      ? 'NAT Hole-Punched Direct P2P via STUN (203.113.148.22:54321 ⇄ 118.70.12.99:60112)'
+      : 'TURN Relay Fallback (Peer A ⇄ TURN Server 34.120.88.10:3478 ⇄ Peer B)';
+
+  const estimatedRttMs =
+    params.natTopology === 'lan-host'
+      ? 4
+      : params.natTopology === 'cone-nat-stun'
+      ? 16
+      : 48;
+
+  const sdpOfferLines: string[] = [
+    'v=0',
+    'o=peerA 48291049123 2 IN IP4 127.0.0.1',
+    's=WebRTC P2P Engineering Session',
+    't=0 0',
+    'a=group:BUNDLE ' +
+      [
+        params.enableAudio ? '0' : null,
+        params.enableVideo ? '1' : null,
+        params.enableDataChannel ? '2' : null,
+      ]
+        .filter(Boolean)
+        .join(' '),
+    'a=fingerprint:sha-256 7F:4B:12:9C:E0:A1:88:3D:55:21:9B:04:C2:F1:11:90',
+    'a=setup:actpass',
+  ];
+
+  if (params.enableAudio) {
+    sdpOfferLines.push(
+      'm=audio 9 UDP/TLS/RTP/SAVPF 111',
+      'a=mid:0',
+      'a=sendrecv',
+      'a=rtpmap:111 opus/48000/2'
+    );
+  }
+  if (params.enableVideo) {
+    const pt = params.videoCodec === 'VP9' ? 98 : params.videoCodec === 'AV1' ? 45 : 102;
+    sdpOfferLines.push(
+      `m=video 9 UDP/TLS/RTP/SAVPF ${pt}`,
+      'a=mid:1',
+      'a=sendrecv',
+      `a=rtpmap:${pt} ${params.videoCodec}/90000`
+    );
+  }
+  if (params.enableDataChannel) {
+    sdpOfferLines.push(
+      'm=application 9 UDP/DTLS/SCTP webrtc-datachannel',
+      'a=mid:2',
+      'a=sctp-port:5000',
+      'a=max-message-size:262144'
+    );
+  }
+
+  const sdpOfferText = sdpOfferLines.join('\n');
+  const sdpAnswerText = sdpOfferText
+    .replace('o=peerA 48291049123', 'o=peerB 99182736451')
+    .replace('a=setup:actpass', 'a=setup:active');
+
+  const iceCandidates: WebRtcIceCandidateItem[] = [
+    {
+      id: 'cand-host-a',
+      peer: 'Peer A',
+      type: 'host',
+      ipPort: '192.168.1.10:51002 (UDP)',
+      priority: 2122260223,
+      selected: params.natTopology === 'lan-host',
+      descriptionVi:
+        'Địa chỉ IP nội bộ (LAN Host Candidate). Được chọn khi cả 2 máy cùng nằm trong một mạng Wi-Fi/LAN.',
     },
-    paths: {
-      '/students': {
-        get: {
-          summary: 'Lấy danh sách sinh viên (hỗ trợ lọc theo khoa)',
-          parameters: ['department (query, string)', 'limit (query, integer)'],
-          responses: {
-            '200': 'Danh sách mảng StudentSchema',
-          },
-        },
-        post: {
-          summary: 'Thêm mới một hồ sơ sinh viên',
-          requestBody: 'CreateStudentSchema { fullName, email, major }',
-          responses: {
-            '201': 'Hồ sơ sinh viên vừa được khởi tạo',
-          },
-        },
-      },
-      '/students/{id}': {
-        get: {
-          summary: 'Tra cứu chi tiết sinh viên theo mã định danh',
-          parameters: ['id (path, required, string)'],
-          responses: {
-            '200': 'Đối tượng StudentSchema chi tiết',
-          },
-        },
-        put: {
-          summary: 'Cập nhật toàn bộ hồ sơ sinh viên theo ID',
-          parameters: ['id (path, required, string)'],
-          requestBody: 'UpdateStudentSchema { fullName, gpa, major }',
-          responses: {
-            '200': 'Cập nhật thành công',
-          },
-        },
-      },
+    {
+      id: 'cand-srflx-a',
+      peer: 'Peer A',
+      type: 'srflx',
+      ipPort: '203.113.148.22:54321 (STUN Reflexive)',
+      priority: 1686052607,
+      selected: params.natTopology === 'cone-nat-stun',
+      descriptionVi:
+        'Địa chỉ IP/Port công cộng do STUN Server phát hiện. Cho phép đục lỗ NAT (UDP Hole Punching) để truyền P2P trực tiếp qua Internet.',
     },
-  },
-  null,
-  2
-);
+    {
+      id: 'cand-relay-a',
+      peer: 'Peer A',
+      type: 'relay',
+      ipPort: '34.120.88.10:3478 (TURN Relay)',
+      priority: 41819903,
+      selected: params.natTopology === 'symmetric-nat-turn',
+      descriptionVi:
+        'Địa chỉ chuyển tiếp trên TURN Server. Chỉ kích hoạt khi tường lửa Symmetric NAT chặn hoàn toàn kết nối P2P trực tiếp.',
+    },
+  ];
 
-export function parseOpenApiSpec(specText: string): OpenApiParseResult {
-  let raw: Record<string, unknown>;
-  try {
-    raw = JSON.parse(specText) as Record<string, unknown>;
-  } catch (err) {
-    return {
-      isValid: false,
-      title: 'Invalid Specification',
-      version: '0.0.0',
-      errorMessage:
-        'Lỗi cú pháp trong tài liệu OpenAPI (JSON không hợp lệ). Vui lòng kiểm tra dấu ngoặc hoặc dấu phẩy.',
-      endpoints: [],
-      generatedTypeScriptSdk: '// Không thể sinh SDK khi đặc tả OpenAPI bị lỗi cú pháp.',
-    };
-  }
-
-  const openapiVersion =
-    typeof raw['openapi'] === 'string' ? raw['openapi'] : '';
-  if (!openapiVersion.startsWith('3.')) {
-    return {
-      isValid: false,
-      title: 'Missing OpenAPI Version',
-      version: '0.0.0',
-      errorMessage:
-        'Tài liệu thiếu trường "openapi": "3.0.x" ở cấp gốc (Root Object).',
-      endpoints: [],
-      generatedTypeScriptSdk: '// Thiếu phiên bản openapi 3.x',
-    };
-  }
-
-  const info = (raw['info'] as Record<string, unknown>) ?? {};
-  const title =
-    typeof info['title'] === 'string' ? info['title'] : 'Untitled API';
-  const version =
-    typeof info['version'] === 'string' ? info['version'] : '1.0.0';
-
-  const paths = (raw['paths'] as Record<string, unknown>) ?? {};
-  const endpoints: ParsedOpenApiEndpoint[] = [];
-
-  for (const [pathKey, pathObj] of Object.entries(paths)) {
-    if (typeof pathObj !== 'object' || pathObj === null) continue;
-    for (const [methodKey, opVal] of Object.entries(
-      pathObj as Record<string, unknown>
-    )) {
-      const upper = methodKey.toUpperCase() as HttpMethod;
-      if (!['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(upper)) continue;
-      const op = (opVal as Record<string, unknown>) ?? {};
-      const summary =
-        typeof op['summary'] === 'string' ? op['summary'] : `${upper} ${pathKey}`;
-      const params = Array.isArray(op['parameters'])
-        ? op['parameters'].map((p) => String(p))
-        : [];
-      const requestSchema =
-        typeof op['requestBody'] === 'string' ? op['requestBody'] : undefined;
-      const responses = (op['responses'] as Record<string, unknown>) ?? {};
-      const firstCode = Object.keys(responses)[0] ?? '200';
-      const firstDesc = String(responses[firstCode] ?? 'Success');
-
-      endpoints.push({
-        path: pathKey,
-        method: upper,
-        summary,
-        parameters: params,
-        requestSchema,
-        responseCode: firstCode,
-        responseDescription: firstDesc,
-      });
-    }
-  }
-
-  const sdkFunctions = endpoints
-    .map((ep, idx) => {
-      const fnName = `${ep.method.toLowerCase()}Endpoint${idx + 1}`;
-      return `/** ${ep.summary} */\nexport async function ${fnName}(baseUrl: string) {\n  const res = await fetch(\`\${baseUrl}${ep.path}\`, { method: '${ep.method}' });\n  return res.json();\n}`;
-    })
-    .join('\n\n');
+  const handshakeStages = [
+    {
+      stage: 1,
+      title: '1. WebSocket Signaling (SDP Offer & Answer)',
+      detailVi:
+        'Peer A và Peer B kết nối tới Signaling Server (WebSocket) để trao đổi bản mô tả phiên SDP (thống nhất codec ' +
+        params.videoCodec +
+        '/Opus và khóa vân tay DTLS).',
+    },
+    {
+      stage: 2,
+      title: '2. ICE Candidate Gathering (STUN / TURN)',
+      detailVi:
+        params.natTopology === 'lan-host'
+          ? 'Hai Peer phát hiện cùng dải mạng LAN nội bộ nên chọn ngay cặp Host Candidate (192.168.1.x).'
+          : params.natTopology === 'cone-nat-stun'
+          ? 'Hai Peer gọi STUN Server (stun:19302) để lấy IP/Port công cộng (srflx) và đục lỗ UDP thành công.'
+          : 'Tường lửa doanh nghiệp (Symmetric NAT) chặn kết nối UDP trực tiếp! ICE tự động chuyển sang ứng viên dự phòng TURN Relay (typ relay).',
+    },
+    {
+      stage: 3,
+      title: '3. DTLS-SRTP Encrypted Handshake',
+      detailVi:
+        'Hai Peer thực hiện bắt tay mật mã DTLS trực tiếp trên luồng UDP và đối chiếu khớp chứng chỉ a=fingerprint trong SDP.',
+    },
+    {
+      stage: 4,
+      title: isDirectP2P
+        ? '4. Direct P2P Media & DataChannel Streaming'
+        : '4. TURN-Relayed Media & DataChannel Streaming',
+      detailVi: isDirectP2P
+        ? `Luồng dữ liệu chảy trực tiếp giữa trình duyệt Peer A ⇄ Peer B với độ trễ chỉ ${estimatedRttMs}ms, tải trên Signaling Server = 0%.`
+        : `Luồng dữ liệu được chuyển tiếp an toàn qua TURN Server với độ trễ ${estimatedRttMs}ms để vượt qua tường lửa khắt khe.`,
+    },
+  ];
 
   return {
-    isValid: true,
-    title,
-    version,
-    endpoints,
-    generatedTypeScriptSdk: `// Auto-generated TypeScript Client SDK from OpenAPI ${openapiVersion} (${title} v${version})\n\n${sdkFunctions}`,
+    natTopology: params.natTopology,
+    videoCodec: params.videoCodec,
+    enableVideo: params.enableVideo,
+    enableAudio: params.enableAudio,
+    enableDataChannel: params.enableDataChannel,
+    isDirectP2P,
+    activePathLabel,
+    estimatedRttMs,
+    sdpOfferText,
+    sdpAnswerText,
+    iceCandidates,
+    handshakeStages,
   };
 }

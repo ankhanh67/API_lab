@@ -9,8 +9,7 @@ import {
   executeGraphqlSimulation,
   executeGrpcSimulation,
   simulateWebhookDelivery,
-  DEFAULT_OPENAPI_SPEC_JSON,
-  parseOpenApiSpec,
+  simulateWebRtcSession,
 } from '@/simulations/engines';
 
 describe('Phase 2 & 3: Seven Learning Modules & Simulation Engines', () => {
@@ -24,7 +23,7 @@ describe('Phase 2 & 3: Seven Learning Modules & Simulation Engines', () => {
       'grpc',
       'websocket',
       'webhook',
-      'openapi',
+      'webrtc',
     ]);
 
     for (const mod of ALL_LEARNING_MODULES) {
@@ -169,10 +168,31 @@ describe('Phase 2 & 3: Seven Learning Modules & Simulation Engines', () => {
     expect(whRetry.attempts[2]?.outcome).toBe('DELIVERED');
   });
 
-  it('parses OpenAPI 3.0 specification and generates TypeScript SDK preview', () => {
-    const parsed = parseOpenApiSpec(DEFAULT_OPENAPI_SPEC_JSON);
-    expect(parsed.isValid).toBe(true);
-    expect(parsed.endpoints).toHaveLength(4);
-    expect(parsed.generatedTypeScriptSdk).toContain('export async function');
+  it('simulates WebRTC SDP Offer/Answer, ICE/STUN/TURN candidates, and P2P vs TURN Relay paths', () => {
+    const stunSession = simulateWebRtcSession({
+      natTopology: 'cone-nat-stun',
+      videoCodec: 'VP9',
+      enableVideo: true,
+      enableAudio: true,
+      enableDataChannel: true,
+    });
+    expect(stunSession.isDirectP2P).toBe(true);
+    expect(stunSession.sdpOfferText).toContain('VP9/90000');
+    expect(stunSession.sdpOfferText).toContain('webrtc-datachannel');
+    expect(
+      stunSession.iceCandidates.find((c) => c.type === 'srflx')?.selected
+    ).toBe(true);
+
+    const turnSession = simulateWebRtcSession({
+      natTopology: 'symmetric-nat-turn',
+      videoCodec: 'AV1',
+      enableVideo: true,
+      enableAudio: false,
+      enableDataChannel: true,
+    });
+    expect(turnSession.isDirectP2P).toBe(false);
+    expect(
+      turnSession.iceCandidates.find((c) => c.type === 'relay')?.selected
+    ).toBe(true);
   });
 });

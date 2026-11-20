@@ -113,18 +113,18 @@ export const TECH_CLASSIFICATIONS: TechClassificationItem[] = [
     href: '/modules/webhook',
   },
   {
-    id: 'openapi',
-    name: 'OpenAPI Specification',
-    shortName: 'OpenAPI',
-    natureEn: 'API Description Specification',
-    natureVi: 'Đặc tả mô tả API (API Description Specification)',
+    id: 'webrtc',
+    name: 'WebRTC API',
+    shortName: 'WebRTC',
+    natureEn: 'P2P Real-Time Media & Data Protocol',
+    natureVi: 'Giao thức & API truyền thông ngang hàng thời gian thực (Peer-to-Peer Real-Time Media & Data)',
     roleSummaryVi:
-      'Chuẩn định dạng YAML/JSON mô tả cấu trúc REST API (Paths, Parameters, Schemas, Security) phục vụ sinh tài liệu, kiểm tra hợp lệ và sinh SDK tự động.',
+      'Kết nối trực tiếp trình duyệt-tới-trình duyệt (Peer-to-Peer) qua UDP/SRTP/SCTP để truyền tải Video, Audio và dữ liệu độ trễ cực thấp thông qua cơ chế bắt tay SDP và xuyên tường lửa ICE/STUN/TURN.',
     coexistenceExampleVi:
-      'OpenAPI không tự truyền dữ liệu trên mạng mà mô tả hợp đồng cho các REST API để đội Frontend, Backend và QA làm việc đồng bộ.',
+      'WebRTC không tự quy định kênh báo hiệu nên luôn phối hợp cùng WebSocket (hoặc REST) làm Signaling Server để hai Peer trao đổi SDP Offer/Answer và ICE Candidates trước khi mở luồng P2P trực tiếp.',
     accentHex: '#06B6D4',
     colorName: 'cyan',
-    href: '/modules/openapi',
+    href: '/modules/webrtc',
   },
 ];
 
