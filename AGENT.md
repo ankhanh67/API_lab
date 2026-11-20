@@ -60,5 +60,6 @@ Tài liệu này lưu lại toàn bộ quyết định kỹ thuật, trạng th�
   - **Knowledge Assessment (`/assessment`):** Hệ thống kiểm tra 3 dạng câu hỏi (Multiple Choice, Technical Understanding, Scenario-Based) với chấm điểm và giải thích tức thì.
   - **Verification:** `13/13 Vitest tests pass`, `tsc --noEmit` 0 lỗi, `next build` thành công toàn bộ routes.
 
-- **[x] Update — Đổi chuyên đề 7 từ OpenAPI Specification sang WebRTC API**:
+- **[x] Update — Đổi chuyên đề 7 từ OpenAPI Specification sang WebRTC API** (Commit `2f87ddd` — `feat/replace openapi with webrtc`):
   - Thay thế hoàn toàn OpenAPI bằng **WebRTC API** (`P2P Real-Time Media & Data Protocol`) trên toàn bộ hệ thống kiểu dữ liệu, trang chủ, Module 7 (`/modules/webrtc`), bộ mô phỏng WebRTC (SDP Offer/Answer, ICE/STUN/TURN NAT Traversal & P2P RTCDataChannel), Scenario 6 (Telehealth WebRTC + WebSocket Signaling), Bảng so sánh 9 chiều, và bộ câu hỏi đánh giá.
+  - Kết quả kiểm thử: `13/13 Vitest tests pass`, `tsc --noEmit` 0 lỗi.
