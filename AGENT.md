@@ -64,6 +64,7 @@ Tài liệu này lưu lại toàn bộ quyết định kỹ thuật, trạng th�
   - Thay thế hoàn toàn OpenAPI bằng **WebRTC API** (`P2P Real-Time Media & Data Protocol`) trên toàn bộ hệ thống kiểu dữ liệu, trang chủ, Module 7 (`/modules/webrtc`), bộ mô phỏng WebRTC (SDP Offer/Answer, ICE/STUN/TURN NAT Traversal & P2P RTCDataChannel), Scenario 6 (Telehealth WebRTC + WebSocket Signaling), Bảng so sánh 9 chiều, và bộ câu hỏi đánh giá.
   - Kết quả kiểm thử: `13/13 Vitest tests pass`, `tsc --noEmit` 0 lỗi.
 
-- **[x] CI/CD — Cấu hình Tự động Deploy lên GitHub Pages qua GitHub Actions**:
+- **[x] CI/CD — Cấu hình Tự động Deploy lên GitHub Pages qua GitHub Actions** (Commit `209b07a` — `ci/add github pages deploy workflow`):
   - Cập nhật `next.config.mjs` hỗ trợ `output: 'export'`, `basePath: '/API_lab'`, `trailingSlash: true` khi chạy trên `GITHUB_ACTIONS=true` (giữ nguyên môi trường dev cục bộ tại `localhost:3000`).
   - Tạo workflow `.github/workflows/deploy.yml` tự động chạy `typecheck`, `vitest`, `next build` và xuất bản thư mục `out/` lên GitHub Pages (`https://ankhanh67.github.io/API_lab/`).
+  - Đã push lên remote `origin/main`.
