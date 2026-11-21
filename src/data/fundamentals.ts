@@ -526,3 +526,32 @@ export const AUTH_MECHANISMS: AuthMechanismDetail[] = [
     bestUseCaseVi: 'Hệ sinh thái mở ("Đăng nhập và đồng bộ lịch với Google / GitHub") và Enterprise SSO.',
   },
 ];
+
+import { Language } from '@/config/site';
+import {
+  FUNDAMENTAL_LIFECYCLE_STAGES_EN,
+  HTTP_METHODS_GUIDE_EN,
+  HTTP_STATUS_CATEGORIES_EN,
+  DATA_FORMATS_COMPARISON_EN,
+  AUTH_MECHANISMS_EN,
+} from '@/data/en/fundamentals';
+
+export function getFundamentalsData(lang: Language) {
+  if (lang === 'en') {
+    return {
+      lifecycleStages: FUNDAMENTAL_LIFECYCLE_STAGES_EN,
+      httpMethods: HTTP_METHODS_GUIDE_EN,
+      httpStatusCategories: HTTP_STATUS_CATEGORIES_EN,
+      dataFormats: DATA_FORMATS_COMPARISON_EN,
+      authMechanisms: AUTH_MECHANISMS_EN,
+    };
+  }
+  return {
+    lifecycleStages: FUNDAMENTAL_LIFECYCLE_STAGES,
+    httpMethods: HTTP_METHODS_GUIDE,
+    httpStatusCategories: HTTP_STATUS_CATEGORIES,
+    dataFormats: DATA_FORMATS_COMPARISON,
+    authMechanisms: AUTH_MECHANISMS,
+  };
+}
+

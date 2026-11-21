@@ -533,8 +533,18 @@ export const QUIZ_QUESTIONS: QuizQuestion[] = [
 ];
 
 export function getQuestionsByModule(
-  moduleId: ApiTechnologyId | 'all'
+  moduleId: ApiTechnologyId | 'all',
+  lang: Language = 'vi'
 ): QuizQuestion[] {
-  if (moduleId === 'all') return QUIZ_QUESTIONS;
-  return QUIZ_QUESTIONS.filter((q) => q.moduleId === moduleId);
+  const list = lang === 'en' ? QUIZ_QUESTIONS_EN : QUIZ_QUESTIONS;
+  if (moduleId === 'all') return list;
+  return list.filter((q) => q.moduleId === moduleId);
 }
+
+import { Language } from '@/config/site';
+import { QUIZ_QUESTIONS_EN } from '@/data/en/quizzes';
+
+export function getAssessmentQuizzes(lang: Language = 'vi'): QuizQuestion[] {
+  return lang === 'en' ? QUIZ_QUESTIONS_EN : QUIZ_QUESTIONS;
+}
+

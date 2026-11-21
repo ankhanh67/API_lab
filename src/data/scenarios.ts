@@ -519,3 +519,11 @@ export const REAL_WORLD_SCENARIOS: RealWorldScenario[] = [
     ],
   },
 ];
+
+import { Language } from '@/config/site';
+import { REAL_WORLD_SCENARIOS_EN } from '@/data/en/scenarios';
+
+export function getRealWorldScenarios(lang: Language): RealWorldScenario[] {
+  return lang === 'en' ? REAL_WORLD_SCENARIOS_EN : REAL_WORLD_SCENARIOS;
+}
+

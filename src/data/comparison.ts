@@ -229,3 +229,23 @@ export const DECISION_ADVISOR_SCENARIOS: DecisionScenarioOption[] = [
       'Các giải pháp JSON nhẹ thường chỉ dựa vào bảo mật tầng đường truyền (TLS điểm-tới-điểm) mà thiếu tiêu chuẩn ký số/mã hóa cấp phần tử thông điệp chuẩn hóa như WS-Security.',
   },
 ];
+
+import { Language } from '@/config/site';
+import {
+  COMPARISON_DIMENSIONS_EN,
+  DECISION_ADVISOR_SCENARIOS_EN,
+} from '@/data/en/comparison';
+
+export function getComparisonData(lang: Language) {
+  if (lang === 'en') {
+    return {
+      dimensions: COMPARISON_DIMENSIONS_EN,
+      decisionScenarios: DECISION_ADVISOR_SCENARIOS_EN,
+    };
+  }
+  return {
+    dimensions: COMPARISON_DIMENSIONS,
+    decisionScenarios: DECISION_ADVISOR_SCENARIOS,
+  };
+}
+
