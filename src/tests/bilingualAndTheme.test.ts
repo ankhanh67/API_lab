@@ -5,6 +5,17 @@ import { getFundamentalsData } from '@/data/fundamentals';
 import { getRealWorldScenarios } from '@/data/scenarios';
 import { getComparisonData } from '@/data/comparison';
 import { getAssessmentQuizzes } from '@/data/quizzes';
+import { getApiModulesList, getModuleById } from '@/data/modules';
+import {
+  buildUniversalLifecycleSteps,
+  simulateRestRequest,
+  INITIAL_REST_PRODUCTS,
+  executeSoapSimulation,
+  executeGraphqlSimulation,
+  executeGrpcSimulation,
+  simulateWebhookDelivery,
+  simulateWebRtcSession,
+} from '@/simulations/engines';
 
 describe('Task 1: Bilingual Site Config & UI Dictionary', () => {
   it('returns localized site config and 7 tech classifications for both vi and en', () => {
@@ -73,3 +84,92 @@ describe('Task 2: Bilingual Fundamentals, Scenarios, Comparison & Quizzes', () =
     });
   });
 });
+
+describe('Task 3: Bilingual 7 API Modules & Simulation Engines', () => {
+  it('returns all 7 complete learning modules in English matching Vietnamese structure', () => {
+    const viList = getApiModulesList('vi');
+    const enList = getApiModulesList('en');
+    expect(enList).toHaveLength(7);
+    enList.forEach((mod, idx) => {
+      const viMod = viList[idx]!;
+      expect(mod.id).toBe(viMod.id);
+      expect(mod.coreConcepts.length).toBeGreaterThanOrEqual(4);
+      expect(mod.communicationFlow).toHaveLength(viMod.communicationFlow.length);
+      expect(getModuleById(mod.id, 'en')?.name).toBe(mod.name);
+    });
+  });
+
+  it('produces English explanations across simulation engines and universal lifecycle', () => {
+    const stepsEn = buildUniversalLifecycleSteps(
+      {
+        method: 'POST',
+        endpoint: '/api/orders',
+        authHeader: 'Bearer tok_123',
+        requestBody: '{"id":1}',
+        mode: 'normal-200',
+      },
+      'en'
+    );
+    expect(stepsEn).toHaveLength(8);
+    expect(stepsEn[0]?.shortExplanationVi).toContain('Client');
+
+    const restRes = simulateRestRequest(
+      {
+        method: 'GET',
+        path: '/api/products',
+        queryParams: {},
+        headers: {},
+        bodyText: '',
+        currentProducts: INITIAL_REST_PRODUCTS,
+      },
+      'en'
+    );
+    expect(restRes.response.explanationVi).toContain('Stateless');
+
+    const soapRes = executeSoapSimulation('GetAccountBalance', '<soap:Envelope></soap:Envelope>', 'en');
+    expect(soapRes.envelopeBreakdown.envelopeVi).toContain('SOAP');
+
+    const gqlRes = executeGraphqlSimulation(
+      {
+        studentId: 'SV-101',
+        includeFullName: true,
+        includeGpa: true,
+        includeEmail: false,
+        includeDepartment: true,
+        includeCourses: false,
+        includeGrades: false,
+      },
+      'en'
+    );
+    expect(gqlRes.explanationVi).toContain('Resolver');
+
+    const grpcRes = executeGrpcSimulation('unary', 'ORD-101', 500000, 'en');
+    expect(grpcRes.frames[0]?.explanationVi).toContain('Protobuf');
+
+    const whRes = simulateWebhookDelivery(
+      {
+        eventType: 'payment.success',
+        callbackUrl: 'https://api.shop.vn/webhooks',
+        secretKey: 'sec_123',
+        tamperSignature: false,
+        simulateReceiver500Error: false,
+        orderAmountVnd: 900000,
+      },
+      'en'
+    );
+    expect(whRes.attempts[0]?.explanationVi).toContain('HMAC');
+
+    const rtcRes = simulateWebRtcSession(
+      {
+        natTopology: 'cone-nat-stun',
+        videoCodec: 'VP9',
+        enableVideo: true,
+        enableAudio: true,
+        enableDataChannel: true,
+      },
+      'en'
+    );
+    expect(rtcRes.handshakeStages[0]?.detailVi).toContain('Signaling');
+  });
+});
+

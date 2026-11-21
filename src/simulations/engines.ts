@@ -4,6 +4,11 @@ import {
   UniversalLifecycleStep,
   CommunicationEvent,
 } from '@/types/api';
+import { Language } from '@/config/site';
+
+function tr(lang: Language, vi: string, en: string): string {
+  return lang === 'en' ? en : vi;
+}
 
 // ============================================================================
 // 1. UNIVERSAL 8-STEP REQUEST/RESPONSE SIMULATOR ENGINE
@@ -25,7 +30,8 @@ export interface UniversalSimConfig {
 }
 
 export function buildUniversalLifecycleSteps(
-  config: UniversalSimConfig
+  config: UniversalSimConfig,
+  lang: Language = 'vi'
 ): UniversalLifecycleStep[] {
   const isError401 = config.mode === 'unauthorized-401' || !config.authHeader.trim();
   const isError400 = config.mode === 'bad-request-400';
@@ -45,13 +51,19 @@ export function buildUniversalLifecycleSteps(
     {
       stepNumber: 1,
       titleEn: 'Step 1: Client constructs a request',
-      titleVi: 'Bước 1: Client khởi tạo và đóng gói Request',
+      titleVi: tr(lang, 'Bước 1: Client khởi tạo và đóng gói Request', 'Step 1: Client constructs and serializes Request'),
       activeComponent: 'client',
       direction: 'internal',
-      shortExplanationVi:
+      shortExplanationVi: tr(
+        lang,
         'Ứng dụng Client thu thập dữ liệu, thiết lập HTTP Method, URI Endpoint, Headers và tuần tự hóa (Serialize) dữ liệu sang JSON.',
-      technicalMechanismVi:
+        'Client application collects user input, sets the HTTP Method, URI Endpoint, and Headers, and serializes the payload into JSON.'
+      ),
+      technicalMechanismVi: tr(
+        lang,
         'In-memory JavaScript Object được chuyển đổi qua JSON.stringify() thành chuỗi UTF-8 và gắn kèm Header Content-Type: application/json.',
+        'In-memory JavaScript Object is converted via JSON.stringify() into a UTF-8 string with Content-Type: application/json.'
+      ),
       communicationState: 'CLIENT_PREPARING_PAYLOAD',
       payloadSnapshot: `${config.method} ${config.endpoint}\nAuthorization: ${
         config.authHeader || '(Missing)'
@@ -60,30 +72,39 @@ export function buildUniversalLifecycleSteps(
     {
       stepNumber: 2,
       titleEn: 'Step 2: Client sends the request',
-      titleVi: 'Bước 2: Client truyền gói tin Request qua mạng',
+      titleVi: tr(lang, 'Bước 2: Client truyền gói tin Request qua mạng', 'Step 2: Client transmits Request packet over the network'),
       activeComponent: 'client',
       targetComponent: 'api-layer',
       direction: 'request',
-      shortExplanationVi:
+      shortExplanationVi: tr(
+        lang,
         'Gói tin HTTP được đẩy xuống tầng giao vận TCP/TLS và di chuyển qua đường truyền mạng tới địa chỉ của API Layer.',
-      technicalMechanismVi:
+        'The HTTP packet is pushed down to the TCP/TLS transport stack and travels across the network to the API Layer.'
+      ),
+      technicalMechanismVi: tr(
+        lang,
         'Thiết lập kết nối TCP + TLS Handshake; dữ liệu được chia thành các TCP segments mang HTTP Request Line, Headers và Body.',
+        'Establishes TCP + TLS Handshake; data is segmented into TCP packets carrying the HTTP Request Line, Headers, and Body.'
+      ),
       communicationState: 'IN_FLIGHT_TO_API_LAYER',
       payloadSnapshot: `[TCP/TLS STREAM -> api.lab.local:443]\n>>> ${config.method} ${config.endpoint} HTTP/1.1`,
     },
     {
       stepNumber: 3,
       titleEn: 'Step 3: API receives and validates the request',
-      titleVi: 'Bước 3: Tầng API tiếp nhận, xác thực & kiểm tra Schema',
+      titleVi: tr(lang, 'Bước 3: Tầng API tiếp nhận, xác thực & kiểm tra Schema', 'Step 3: API Layer receives, authenticates & validates Schema'),
       activeComponent: 'api-layer',
       direction: 'internal',
       shortExplanationVi: isError401
-        ? 'Tầng API phát hiện thiếu hoặc sai thông tin xác thực (Authorization Header) và chặn yêu cầu ngay tại cửa ngõ!'
+        ? tr(lang, 'Tầng API phát hiện thiếu hoặc sai thông tin xác thực (Authorization Header) và chặn yêu cầu ngay tại cửa ngõ!', 'API Layer detected a missing or invalid Authorization Header and rejected the request at the gateway!')
         : isError400
-        ? 'Tầng API giải mã JSON và phát hiện dữ liệu vi phạm Schema Validation (400 Bad Request)!'
-        : 'API Gateway định tuyến URI, xác thực chữ ký Token hợp lệ và kiểm tra Schema dữ liệu đầu vào thành công.',
-      technicalMechanismVi:
+        ? tr(lang, 'Tầng API giải mã JSON và phát hiện dữ liệu vi phạm Schema Validation (400 Bad Request)!', 'API Layer parsed the JSON body and detected a Schema Validation violation (400 Bad Request)!')
+        : tr(lang, 'API Gateway định tuyến URI, xác thực chữ ký Token hợp lệ và kiểm tra Schema dữ liệu đầu vào thành công.', 'API Gateway matched the URI route, verified the Bearer token signature, and validated the input Schema.'),
+      technicalMechanismVi: tr(
+        lang,
         'Middleware chạy tuần tự: Rate Limiter → Auth Verifier → JSON Deserializer → Schema Validator.',
+        'Middleware executes sequentially: Rate Limiter → Auth Verifier → JSON Deserializer → Schema Validator.'
+      ),
       communicationState: isError401
         ? 'REJECTED_AT_AUTH_MIDDLEWARE (401)'
         : isError400
@@ -98,15 +119,18 @@ export function buildUniversalLifecycleSteps(
     {
       stepNumber: 4,
       titleEn: 'Step 4: Server executes business logic',
-      titleVi: 'Bước 4: Server thực thi Logic Nghiệp vụ (Business Logic)',
+      titleVi: tr(lang, 'Bước 4: Server thực thi Logic Nghiệp vụ (Business Logic)', 'Step 4: Server executes Domain Business Logic'),
       activeComponent: 'server',
       direction: 'internal',
       shortExplanationVi:
         isError401 || isError400
-          ? 'Bước này bị bỏ qua (Skipped) do tầng API đã từ chối yêu cầu ở Bước 3 nhằm bảo vệ tài nguyên Server.'
-          : 'Application Server thực thi các quy tắc nghiệp vụ: kiểm tra quyền hạn chi tiết, tính toán giá trị và chuẩn bị câu lệnh truy vấn.',
-      technicalMechanismVi:
+          ? tr(lang, 'Bước này bị bỏ qua (Skipped) do tầng API đã từ chối yêu cầu ở Bước 3 nhằm bảo vệ tài nguyên Server.', 'Skipped because the API Layer short-circuited the invalid request at Step 3 to protect backend resources.')
+          : tr(lang, 'Application Server thực thi các quy tắc nghiệp vụ: kiểm tra quyền hạn chi tiết, tính toán giá trị và chuẩn bị câu lệnh truy vấn.', 'Application Server executes domain rules: checks fine-grained permissions, computes totals, and prepares database queries.'),
+      technicalMechanismVi: tr(
+        lang,
         'Domain Service xử lý đối tượng đã Deserialize trong bộ nhớ RAM, áp dụng quy tắc miền (Domain Rules).',
+        'Domain Service processes the deserialized in-memory DTO and enforces business invariants.'
+      ),
       communicationState:
         isError401 || isError400 ? 'SKIPPED_BY_EARLY_RETURN' : 'EXECUTING_DOMAIN_LOGIC',
       payloadSnapshot:
@@ -117,17 +141,20 @@ export function buildUniversalLifecycleSteps(
     {
       stepNumber: 5,
       titleEn: 'Step 5: Server interacts with the database',
-      titleVi: 'Bước 5: Server truy vấn / ghi Cơ sở dữ liệu (Database)',
+      titleVi: tr(lang, 'Bước 5: Server truy vấn / ghi Cơ sở dữ liệu (Database)', 'Step 5: Server queries / persists to the Database'),
       activeComponent: 'database',
       direction: 'internal',
       shortExplanationVi:
         isError401 || isError400
-          ? 'Không có tương tác Database nào xảy ra (tiết kiệm I/O vì yêu cầu không hợp lệ).'
+          ? tr(lang, 'Không có tương tác Database nào xảy ra (tiết kiệm I/O vì yêu cầu không hợp lệ).', 'No Database interaction occurred (saving disk I/O since the request failed early validation).')
           : isError500
-          ? 'Lỗi kết nối hoặc xung đột khóa trong Database khi thực thi câu lệnh SQL (500 Internal Server Error)!'
-          : 'Database thực thi truy vấn đọc hoặc giao dịch ACID (Transaction) để lưu trữ dữ liệu bền vững và trả bản ghi về Server.',
-      technicalMechanismVi:
+          ? tr(lang, 'Lỗi kết nối hoặc xung đột khóa trong Database khi thực thi câu lệnh SQL (500 Internal Server Error)!', 'Database deadlock or connection timeout while executing SQL statement (500 Internal Server Error)!')
+          : tr(lang, 'Database thực thi truy vấn đọc hoặc giao dịch ACID (Transaction) để lưu trữ dữ liệu bền vững và trả bản ghi về Server.', 'Database executes a read query or ACID Transaction to persist state durably and returns records to the Server.'),
+      technicalMechanismVi: tr(
+        lang,
         'Connection Pool cấp phát kết nối tới PostgreSQL/Storage Engine; thực thi Prepared Statement.',
+        'Connection Pool allocates a PostgreSQL/Storage Engine connection and executes a parameterized Prepared Statement.'
+      ),
       communicationState:
         isError401 || isError400
           ? 'DB_IDLE'
@@ -149,57 +176,71 @@ export function buildUniversalLifecycleSteps(
     {
       stepNumber: 6,
       titleEn: 'Step 6: Server generates a response',
-      titleVi: 'Bước 6: Server khởi tạo gói tin Phản hồi (Response)',
+      titleVi: tr(lang, 'Bước 6: Server khởi tạo gói tin Phản hồi (Response)', 'Step 6: Server constructs and serializes the Response'),
       activeComponent: 'server',
       direction: 'internal',
-      shortExplanationVi:
+      shortExplanationVi: tr(
+        lang,
         'Server đóng gói kết quả (hoặc thông báo lỗi chuẩn hóa) vào cấu trúc DTO, gắn mã trạng thái HTTP Status Code và Serialize sang JSON.',
-      technicalMechanismVi:
-        'Ánh xạ kết quả sang Response Object, gán HTTP Status (' +
-        statusText +
-        ') và tính toán Content-Length.',
+        'Server packages the result (or standardized error payload) into a response DTO, assigns the HTTP Status Code, and serializes to JSON.'
+      ),
+      technicalMechanismVi: tr(
+        lang,
+        `Ánh xạ kết quả sang Response Object, gán HTTP Status (${statusText}) và tính toán Content-Length.`,
+        `Maps domain output into Response DTO, assigns HTTP Status (${statusText}), and computes Content-Length.`
+      ),
       communicationState: 'SERIALIZING_RESPONSE_DTO',
       payloadSnapshot: isError401
-        ? `{"error":"UNAUTHORIZED","message":"Token xác thực không hợp lệ hoặc bị thiếu.","status":401}`
+        ? `{"error":"UNAUTHORIZED","message":"Missing or invalid authentication token.","status":401}`
         : isError400
-        ? `{"error":"VALIDATION_FAILED","message":"Dữ liệu đầu vào không đúng định dạng Schema.","status":400}`
+        ? `{"error":"VALIDATION_FAILED","message":"Input payload violated schema constraints.","status":400}`
         : isError500
-        ? `{"error":"INTERNAL_DB_ERROR","message":"Không thể hoàn tất giao dịch cơ sở dữ liệu.","status":500}`
+        ? `{"error":"INTERNAL_DB_ERROR","message":"Database transaction could not be completed.","status":500}`
         : `{"status":"SUCCESS","code":"${statusText}","endpoint":"${config.endpoint}","data":${config.requestBody}}`,
     },
     {
       stepNumber: 7,
       titleEn: 'Step 7: API returns the response',
-      titleVi: 'Bước 7: Tầng API gửi trả Response qua mạng về Client',
+      titleVi: tr(lang, 'Bước 7: Tầng API gửi trả Response qua mạng về Client', 'Step 7: API Layer transmits Response back over the network'),
       activeComponent: 'api-layer',
       targetComponent: 'client',
       direction: 'response',
-      shortExplanationVi:
+      shortExplanationVi: tr(
+        lang,
         'Tầng API đính kèm các Headers bảo mật (CORS, X-Request-Id, Cache-Control) và truyền luồng byte phản hồi về lại Client.',
-      technicalMechanismVi:
+        'API Layer attaches security and caching headers (CORS, X-Request-Id, Cache-Control) and streams the response bytes back to the Client.'
+      ),
+      technicalMechanismVi: tr(
+        lang,
         'Ghi HTTP Status Line, Response Headers và JSON Payload lên kết nối TCP đang mở.',
+        'Writes the HTTP Status Line, Response Headers, and JSON Payload onto the open TCP socket.'
+      ),
       communicationState: 'RESPONSE_IN_FLIGHT_TO_CLIENT',
       payloadSnapshot: `HTTP/1.1 ${statusText}\nContent-Type: application/json; charset=utf-8\nX-Simulation-Mode: Deterministic-Local\n\n(JSON Payload in transit)`,
     },
     {
       stepNumber: 8,
       titleEn: 'Step 8: Client receives and processes the result',
-      titleVi: 'Bước 8: Client nhận phản hồi, giải mã và cập nhật UI',
+      titleVi: tr(lang, 'Bước 8: Client nhận phản hồi, giải mã và cập nhật UI', 'Step 8: Client receives response, deserializes JSON & updates UI'),
       activeComponent: 'client',
       direction: 'internal',
-      shortExplanationVi:
-        'Client kiểm tra mã trạng thái HTTP (' +
-        statusText +
-        '), giải tuần tự hóa (JSON.parse) dữ liệu và cập nhật trạng thái giao diện người dùng.',
-      technicalMechanismVi:
+      shortExplanationVi: tr(
+        lang,
+        `Client kiểm tra mã trạng thái HTTP (${statusText}), giải tuần tự hóa (JSON.parse) dữ liệu và cập nhật trạng thái giao diện người dùng.`,
+        `Client inspects the HTTP Status Code (${statusText}), deserializes (JSON.parse) the payload, and updates the user interface state.`
+      ),
+      technicalMechanismVi: tr(
+        lang,
         'Promise của fetch() hoàn tất; ứng dụng phân nhánh logic theo response.ok (2xx) hoặc khối xử lý lỗi (4xx/5xx).',
+        'The fetch() Promise resolves; client code branches on response.ok (2xx) vs. error handling (4xx/5xx).'
+      ),
       communicationState: 'LIFECYCLE_COMPLETE',
       payloadSnapshot: `// Client State Updated:\nStatus: ${statusText}\nisError: ${
         isError400 || isError401 || isError500
       }\nUI Action: ${
         isError400 || isError401 || isError500
-          ? 'Hiển thị thông báo lỗi & hướng dẫn khắc phục'
-          : 'Render dữ liệu mới lên màn hình'
+          ? tr(lang, 'Hiển thị thông báo lỗi & hướng dẫn khắc phục', 'Render error alert & recovery guidance')
+          : tr(lang, 'Render dữ liệu mới lên màn hình', 'Render updated resource data on screen')
       }`,
     },
   ];
@@ -256,7 +297,8 @@ export interface RestSimulationOutput {
 }
 
 export function simulateRestRequest(
-  input: RestSimulationInput
+  input: RestSimulationInput,
+  lang: Language = 'vi'
 ): RestSimulationOutput {
   const products = [...input.currentProducts];
   const cleanPath = input.path.trim().replace(/\?.*$/, '');
@@ -275,19 +317,22 @@ export function simulateRestRequest(
         body: JSON.stringify(
           {
             error: 'UNAUTHORIZED',
-            message: 'Bearer Token không hợp lệ hoặc đã hết hạn.',
+            message: tr(lang, 'Bearer Token không hợp lệ hoặc đã hết hạn.', 'Invalid or expired Bearer Token.'),
           },
           null,
           2
         ),
         latencyMs: 32,
-        explanationVi:
+        explanationVi: tr(
+          lang,
           'Yêu cầu bị từ chối ở tầng Auth Middleware với mã 401 vì Header Authorization chứa token không hợp lệ.',
+          'Request rejected at the Auth Middleware with HTTP 401 because the Authorization header contains an invalid token.'
+        ),
         isError: true,
         stepsTrace: [
-          'Client gửi HTTP Request kèm Authorization Header',
-          'API Gateway kiểm tra chữ ký Bearer Token -> Thất bại',
-          'Trả về ngay 401 Unauthorized, không gọi xuống Database',
+          tr(lang, 'Client gửi HTTP Request kèm Authorization Header', 'Client sent HTTP Request with Authorization Header'),
+          tr(lang, 'API Gateway kiểm tra chữ ký Bearer Token -> Thất bại', 'API Gateway verified Bearer Token signature -> Failed'),
+          tr(lang, 'Trả về ngay 401 Unauthorized, không gọi xuống Database', 'Short-circuited with 401 Unauthorized without querying Database'),
         ],
       },
     };
@@ -307,19 +352,26 @@ export function simulateRestRequest(
         body: JSON.stringify(
           {
             error: 'ENDPOINT_NOT_FOUND',
-            message: `Không tìm thấy tài nguyên tại đường dẫn '${cleanPath}'. Hãy sử dụng /api/products hoặc /api/products/{id}.`,
+            message: tr(
+              lang,
+              `Không tìm thấy tài nguyên tại đường dẫn '${cleanPath}'. Hãy sử dụng /api/products hoặc /api/products/{id}.`,
+              `No resource found at URI '${cleanPath}'. Use /api/products or /api/products/{id}.`
+            ),
           },
           null,
           2
         ),
         latencyMs: 28,
-        explanationVi:
+        explanationVi: tr(
+          lang,
           'URI không khớp với bất kỳ Resource Route nào trên REST Server nên trả về 404 Not Found.',
+          'The URI did not match any registered Resource Route on the REST Server, returning 404 Not Found.'
+        ),
         isError: true,
         stepsTrace: [
-          `Client gửi ${input.method} ${cleanPath}`,
-          'Router tra cứu bảng định tuyến (Routing Table) -> Không khớp',
-          'Server trả về 404 Not Found',
+          tr(lang, `Client gửi ${input.method} ${cleanPath}`, `Client sent ${input.method} ${cleanPath}`),
+          tr(lang, 'Router tra cứu bảng định tuyến (Routing Table) -> Không khớp', 'Router checked Routing Table -> No match'),
+          tr(lang, 'Server trả về 404 Not Found', 'Server returned 404 Not Found'),
         ],
       },
     };
@@ -361,13 +413,16 @@ export function simulateRestRequest(
           2
         ),
         latencyMs: 65,
-        explanationVi:
+        explanationVi: tr(
+          lang,
           'Phương thức GET truy vấn danh sách tài nguyên Products (Stateless & Idempotent). Các Query Parameters được dùng để lọc kết quả mà không làm thay đổi dữ liệu gốc.',
+          'HTTP GET retrieves the Products collection resource (Stateless & Idempotent). Query Parameters filter the returned list without mutating server state.'
+        ),
         isError: false,
         stepsTrace: [
-          `Client gửi GET ${cleanPath} kèm Query Params`,
-          'REST Controller đọc bộ lọc và truy vấn SELECT từ Database',
-          'Trả về 200 OK cùng mảng JSON biểu diễn danh sách sản phẩm',
+          tr(lang, `Client gửi GET ${cleanPath} kèm Query Params`, `Client sent GET ${cleanPath} with Query Params`),
+          tr(lang, 'REST Controller đọc bộ lọc và truy vấn SELECT từ Database', 'REST Controller applied filters and executed SELECT on Database'),
+          tr(lang, 'Trả về 200 OK cùng mảng JSON biểu diễn danh sách sản phẩm', 'Returned 200 OK with JSON array representation of products'),
         ],
       },
     };
@@ -387,18 +442,22 @@ export function simulateRestRequest(
           body: JSON.stringify(
             {
               error: 'PRODUCT_NOT_FOUND',
-              message: `Không tồn tại sản phẩm có ID = ${id}.`,
+              message: tr(lang, `Không tồn tại sản phẩm có ID = ${id}.`, `Product with ID = ${id} does not exist.`),
             },
             null,
             2
           ),
           latencyMs: 44,
-          explanationVi: `Endpoint hợp lệ nhưng tài nguyên Product #${id} không tồn tại trong Database nên trả về mã chuẩn 404 Not Found.`,
+          explanationVi: tr(
+            lang,
+            `Endpoint hợp lệ nhưng tài nguyên Product #${id} không tồn tại trong Database nên trả về mã chuẩn 404 Not Found.`,
+            `Valid endpoint route, but Product resource #${id} does not exist in the Database, returning HTTP 404 Not Found.`
+          ),
           isError: true,
           stepsTrace: [
-            `Client gửi GET /api/products/${id}`,
-            `Database thực thi SELECT * FROM products WHERE id = ${id} -> 0 rows`,
-            'Trả về 404 Not Found',
+            tr(lang, `Client gửi GET /api/products/${id}`, `Client sent GET /api/products/${id}`),
+            tr(lang, `Database thực thi SELECT * FROM products WHERE id = ${id} -> 0 rows`, `Database executed SELECT * FROM products WHERE id = ${id} -> 0 rows`),
+            tr(lang, 'Trả về 404 Not Found', 'Returned 404 Not Found'),
           ],
         },
       };
@@ -415,12 +474,16 @@ export function simulateRestRequest(
         },
         body: JSON.stringify(found, null, 2),
         latencyMs: 48,
-        explanationVi: `Truy xuất thành công biểu diễn (Representation) JSON của tài nguyên sản phẩm #${id} qua Path Parameter.`,
+        explanationVi: tr(
+          lang,
+          `Truy xuất thành công biểu diễn (Representation) JSON của tài nguyên sản phẩm #${id} qua Path Parameter.`,
+          `Successfully retrieved the JSON representation of singleton product resource #${id} via Path Parameter.`
+        ),
         isError: false,
         stepsTrace: [
-          `Client gửi GET /api/products/${id}`,
-          `Database tìm thấy bản ghi #${id}`,
-          'Serialize sang JSON và trả về 200 OK kèm ETag Header',
+          tr(lang, `Client gửi GET /api/products/${id}`, `Client sent GET /api/products/${id}`),
+          tr(lang, `Database tìm thấy bản ghi #${id}`, `Database found record #${id}`),
+          tr(lang, 'Serialize sang JSON và trả về 200 OK kèm ETag Header', 'Serialized to JSON and returned 200 OK with ETag Header'),
         ],
       },
     };
@@ -441,18 +504,21 @@ export function simulateRestRequest(
           body: JSON.stringify(
             {
               error: 'INVALID_JSON_SYNTAX',
-              message: 'Request Body không phải là chuỗi JSON hợp lệ.',
+              message: tr(lang, 'Request Body không phải là chuỗi JSON hợp lệ.', 'Request Body is not valid JSON syntax.'),
             },
             null,
             2
           ),
           latencyMs: 25,
-          explanationVi:
+          explanationVi: tr(
+            lang,
             'JSON Deserializer báo lỗi cú pháp khi đọc Request Body nên trả về 400 Bad Request.',
+            'JSON Deserializer encountered a syntax error while parsing the Request Body and returned 400 Bad Request.'
+          ),
           isError: true,
           stepsTrace: [
-            'Client gửi POST /api/products',
-            'Tầng API parse JSON thất bại -> 400 Bad Request',
+            tr(lang, 'Client gửi POST /api/products', 'Client sent POST /api/products'),
+            tr(lang, 'Tầng API parse JSON thất bại -> 400 Bad Request', 'API Layer JSON parsing failed -> 400 Bad Request'),
           ],
         },
       };
@@ -474,19 +540,25 @@ export function simulateRestRequest(
           body: JSON.stringify(
             {
               error: 'SCHEMA_VALIDATION_ERROR',
-              message:
+              message: tr(
+                lang,
                 'Trường "name" (chuỗi khác rỗng) và "price" (số > 0) là bắt buộc.',
+                'Fields "name" (non-empty string) and "price" (number > 0) are required.'
+              ),
             },
             null,
             2
           ),
           latencyMs: 35,
-          explanationVi:
+          explanationVi: tr(
+            lang,
             'Dữ liệu JSON đúng cú pháp nhưng vi phạm ràng buộc nghiệp vụ (thiếu tên hoặc giá <= 0), trả về 400 Bad Request.',
+            'JSON syntax is valid but violates domain schema constraints (missing name or price <= 0), returning 400 Bad Request.'
+          ),
           isError: true,
           stepsTrace: [
-            'Client gửi POST /api/products',
-            'Schema Validator phát hiện trường name/price không hợp lệ -> 400 Bad Request',
+            tr(lang, 'Client gửi POST /api/products', 'Client sent POST /api/products'),
+            tr(lang, 'Schema Validator phát hiện trường name/price không hợp lệ -> 400 Bad Request', 'Schema Validator rejected invalid name/price fields -> 400 Bad Request'),
           ],
         },
       };
@@ -514,12 +586,16 @@ export function simulateRestRequest(
         },
         body: JSON.stringify(created, null, 2),
         latencyMs: 92,
-        explanationVi: `Tạo mới tài nguyên thành công! Server sinh ID mới (#${created.id}), trả về mã chuẩn 201 Created cùng Header Location trỏ tới URI của sản phẩm mới. Lưu ý: POST không có tính Idempotent.`,
+        explanationVi: tr(
+          lang,
+          `Tạo mới tài nguyên thành công! Server sinh ID mới (#${created.id}), trả về mã chuẩn 201 Created cùng Header Location trỏ tới URI của sản phẩm mới. Lưu ý: POST không có tính Idempotent.`,
+          `Resource created! The server generated a new ID (#${created.id}) and returned HTTP 201 Created with a Location header pointing to the new URI. Note: POST is NOT idempotent.`
+        ),
         isError: false,
         stepsTrace: [
-          'Client gửi POST /api/products kèm JSON Body',
-          'Server xác thực Schema và thực thi INSERT INTO products',
-          `Trả về 201 Created kèm Location: /api/products/${created.id}`,
+          tr(lang, 'Client gửi POST /api/products kèm JSON Body', 'Client sent POST /api/products with JSON Body'),
+          tr(lang, 'Server xác thực Schema và thực thi INSERT INTO products', 'Server validated Schema and executed INSERT INTO products'),
+          tr(lang, `Trả về 201 Created kèm Location: /api/products/${created.id}`, `Returned 201 Created with Location: /api/products/${created.id}`),
         ],
       },
     };
@@ -539,17 +615,21 @@ export function simulateRestRequest(
           body: JSON.stringify(
             {
               error: 'PRODUCT_NOT_FOUND',
-              message: `Không tìm thấy sản phẩm #${id} để cập nhật.`,
+              message: tr(lang, `Không tìm thấy sản phẩm #${id} để cập nhật.`, `Product #${id} not found for update.`),
             },
             null,
             2
           ),
           latencyMs: 45,
-          explanationVi: `Không thể cập nhật vì tài nguyên #${id} không tồn tại (404 Not Found).`,
+          explanationVi: tr(
+            lang,
+            `Không thể cập nhật vì tài nguyên #${id} không tồn tại (404 Not Found).`,
+            `Cannot update because resource #${id} does not exist (404 Not Found).`
+          ),
           isError: true,
           stepsTrace: [
-            `Client gửi ${input.method} /api/products/${id}`,
-            'Không tìm thấy bản ghi trong Database -> 404 Not Found',
+            tr(lang, `Client gửi ${input.method} /api/products/${id}`, `Client sent ${input.method} /api/products/${id}`),
+            tr(lang, 'Không tìm thấy bản ghi trong Database -> 404 Not Found', 'Record not found in Database -> 404 Not Found'),
           ],
         },
       };
@@ -568,15 +648,15 @@ export function simulateRestRequest(
           body: JSON.stringify(
             {
               error: 'INVALID_JSON',
-              message: 'Body gửi lên không phải JSON hợp lệ.',
+              message: tr(lang, 'Body gửi lên không phải JSON hợp lệ.', 'Request body is not valid JSON.'),
             },
             null,
             2
           ),
           latencyMs: 29,
-          explanationVi: 'Lỗi cú pháp JSON trong phần thân yêu cầu cập nhật.',
+          explanationVi: tr(lang, 'Lỗi cú pháp JSON trong phần thân yêu cầu cập nhật.', 'JSON syntax error in update request body.'),
           isError: true,
-          stepsTrace: ['Parse JSON thất bại -> 400 Bad Request'],
+          stepsTrace: [tr(lang, 'Parse JSON thất bại -> 400 Bad Request', 'JSON parse failed -> 400 Bad Request')],
         },
       };
     }
@@ -614,13 +694,21 @@ export function simulateRestRequest(
         latencyMs: 78,
         explanationVi:
           input.method === 'PATCH'
-            ? `Cập nhật một phần (Partial Update - PATCH) tài nguyên #${id} thành công. Chỉ các trường có mặt trong JSON Body mới bị thay đổi.`
-            : `Thay thế toàn bộ biểu diễn (PUT - Idempotent) của tài nguyên #${id} thành công.`,
+            ? tr(
+                lang,
+                `Cập nhật một phần (Partial Update - PATCH) tài nguyên #${id} thành công. Chỉ các trường có mặt trong JSON Body mới bị thay đổi.`,
+                `Partial Update (HTTP PATCH) applied to resource #${id}. Only the fields provided in the JSON Body were modified.`
+              )
+            : tr(
+                lang,
+                `Thay thế toàn bộ biểu diễn (PUT - Idempotent) của tài nguyên #${id} thành công.`,
+                `Full representation replacement (HTTP PUT - Idempotent) completed for resource #${id}.`
+              ),
         isError: false,
         stepsTrace: [
-          `Client gửi ${input.method} /api/products/${id}`,
-          `Server cập nhật bản ghi #${id} trong Database`,
-          'Trả về 200 OK kèm trạng thái mới của sản phẩm',
+          tr(lang, `Client gửi ${input.method} /api/products/${id}`, `Client sent ${input.method} /api/products/${id}`),
+          tr(lang, `Server cập nhật bản ghi #${id} trong Database`, `Server updated record #${id} in Database`),
+          tr(lang, 'Trả về 200 OK kèm trạng thái mới của sản phẩm', 'Returned 200 OK with updated product representation'),
         ],
       },
     };
@@ -640,17 +728,21 @@ export function simulateRestRequest(
           body: JSON.stringify(
             {
               error: 'PRODUCT_NOT_FOUND',
-              message: `Sản phẩm #${id} không tồn tại hoặc đã bị xóa trước đó.`,
+              message: tr(lang, `Sản phẩm #${id} không tồn tại hoặc đã bị xóa trước đó.`, `Product #${id} does not exist or was already deleted.`),
             },
             null,
             2
           ),
           latencyMs: 41,
-          explanationVi: `Tài nguyên #${id} không còn tồn tại trong hệ thống nên trả về 404 Not Found.`,
+          explanationVi: tr(
+            lang,
+            `Tài nguyên #${id} không còn tồn tại trong hệ thống nên trả về 404 Not Found.`,
+            `Resource #${id} is no longer present in the system, returning 404 Not Found.`
+          ),
           isError: true,
           stepsTrace: [
-            `Client gửi DELETE /api/products/${id}`,
-            'Không tìm thấy bản ghi -> 404 Not Found',
+            tr(lang, `Client gửi DELETE /api/products/${id}`, `Client sent DELETE /api/products/${id}`),
+            tr(lang, 'Không tìm thấy bản ghi -> 404 Not Found', 'Record not found -> 404 Not Found'),
           ],
         },
       };
@@ -673,12 +765,16 @@ export function simulateRestRequest(
           2
         ),
         latencyMs: 60,
-        explanationVi: `Đã xóa sản phẩm #${id} khỏi danh mục. DELETE có tính Idempotent về trạng thái hệ thống (tài nguyên #${id} không còn tồn tại sau lệnh xóa).`,
+        explanationVi: tr(
+          lang,
+          `Đã xóa sản phẩm #${id} khỏi danh mục. DELETE có tính Idempotent về trạng thái hệ thống (tài nguyên #${id} không còn tồn tại sau lệnh xóa).`,
+          `Deleted product #${id} from the catalog. DELETE is idempotent with respect to server state (resource #${id} remains absent).`
+        ),
         isError: false,
         stepsTrace: [
-          `Client gửi DELETE /api/products/${id}`,
-          `Database thực thi DELETE FROM products WHERE id = ${id}`,
-          'Trả về 200 OK xác nhận đã xóa tài nguyên',
+          tr(lang, `Client gửi DELETE /api/products/${id}`, `Client sent DELETE /api/products/${id}`),
+          tr(lang, `Database thực thi DELETE FROM products WHERE id = ${id}`, `Database executed DELETE FROM products WHERE id = ${id}`),
+          tr(lang, 'Trả về 200 OK xác nhận đã xóa tài nguyên', 'Returned 200 OK confirming deletion'),
         ],
       },
     };
@@ -696,17 +792,25 @@ export function simulateRestRequest(
       body: JSON.stringify(
         {
           error: 'METHOD_NOT_ALLOWED',
-          message: `Phương thức ${input.method} không được phép trên đường dẫn ${cleanPath}.`,
+          message: tr(
+            lang,
+            `Phương thức ${input.method} không được phép trên đường dẫn ${cleanPath}.`,
+            `HTTP method ${input.method} is not allowed on URI ${cleanPath}.`
+          ),
         },
         null,
         2
       ),
       latencyMs: 24,
-      explanationVi: `REST quy định rõ phương thức nào áp dụng cho Collection (/api/products) hay Item (/api/products/{id}). Gọi sai tổ hợp sẽ nhận mã 405 Method Not Allowed.`,
+      explanationVi: tr(
+        lang,
+        'REST quy định rõ phương thức nào áp dụng cho Collection (/api/products) hay Item (/api/products/{id}). Gọi sai tổ hợp sẽ nhận mã 405 Method Not Allowed.',
+        'REST strictly defines which verbs apply to a Collection (/api/products) vs. a Singleton Item (/api/products/{id}). Invalid combinations return 405 Method Not Allowed.'
+      ),
       isError: true,
       stepsTrace: [
-        `Client gửi ${input.method} ${cleanPath}`,
-        'Router phát hiện Method không được hỗ trợ cho URI này -> 405 Method Not Allowed',
+        tr(lang, `Client gửi ${input.method} ${cleanPath}`, `Client sent ${input.method} ${cleanPath}`),
+        tr(lang, 'Router phát hiện Method không được hỗ trợ cho URI này -> 405 Method Not Allowed', 'Router rejected unsupported HTTP verb for this URI -> 405 Method Not Allowed'),
       ],
     },
   };
@@ -818,7 +922,8 @@ export function buildSoapRequestTemplate(
 
 export function executeSoapSimulation(
   operation: SoapOperationName,
-  requestXml: string
+  requestXml: string,
+  lang: Language = 'vi'
 ): SoapSimulationResult {
   const hasInvalidAcc =
     operation === 'TriggerSoapFault' ||
@@ -840,7 +945,11 @@ export function executeSoapSimulation(
         <soap:Value>soap:Sender</soap:Value>
       </soap:Code>
       <soap:Reason>
-        <soap:Text xml:lang="vi">Tài khoản nguồn không tồn tại hoặc số tiền vượt hạn mức thanh toán (XSD Contract Violation).</soap:Text>
+        <soap:Text xml:lang="${lang}">${tr(
+          lang,
+          'Tài khoản nguồn không tồn tại hoặc số tiền vượt hạn mức thanh toán (XSD Contract Violation).',
+          'Source account does not exist or transfer amount exceeds settlement limit (XSD Contract Violation).'
+        )}</soap:Text>
       </soap:Reason>
       <soap:Detail>
         <bank:BankingErrorDetail>
@@ -852,14 +961,26 @@ export function executeSoapSimulation(
   </soap:Body>
 </soap:Envelope>`,
       envelopeBreakdown: {
-        envelopeVi:
+        envelopeVi: tr(
+          lang,
           'Phần tử gốc <soap:Envelope> định nghĩa không gian tên (XML Namespace) chuẩn SOAP 1.2.',
-        headerVi:
+          'The root <soap:Envelope> element defines the standard SOAP 1.2 XML Namespace.'
+        ),
+        headerVi: tr(
+          lang,
           'Phần <soap:Header> chứa thông tin định danh kênh gọi (CORP_ERP_01) và chữ ký bảo mật WS-Security.',
-        bodyVi:
+          'The <soap:Header> carries the calling channel identity (CORP_ERP_01) and WS-Security credentials.'
+        ),
+        bodyVi: tr(
+          lang,
           'Khi xảy ra lỗi, <soap:Body> chứa khối <soap:Fault> chuẩn hóa thay vì thẻ kết quả thông thường.',
-        faultVi:
+          'When an error occurs, <soap:Body> contains a standardized <soap:Fault> block instead of a normal result tag.'
+        ),
+        faultVi: tr(
+          lang,
           'Khối <soap:Fault> bắt buộc có <soap:Code>, <soap:Reason> và <soap:Detail> mô tả mã lỗi nghiệp vụ ngân hàng theo hợp đồng WSDL.',
+          'The <soap:Fault> block mandates <soap:Code>, <soap:Reason>, and <soap:Detail> describing the WSDL banking domain error code.'
+        ),
       },
     };
   }
@@ -890,12 +1011,21 @@ export function executeSoapSimulation(
   </soap:Body>
 </soap:Envelope>`,
       envelopeBreakdown: {
-        envelopeVi:
+        envelopeVi: tr(
+          lang,
           '<soap:Envelope> đóng gói toàn bộ bức điện XML, đảm bảo cả Client và Core Banking hiểu cùng phiên bản giao thức.',
-        headerVi:
+          '<soap:Envelope> wraps the entire SOAP XML message, ensuring both Client and Core Banking enforce the same protocol version.'
+        ),
+        headerVi: tr(
+          lang,
           '<soap:Header> truyền Metadata cấp giao thức (Token WS-Security ở chiều đi, mã Node xử lý ở chiều về) tách biệt khỏi dữ liệu nghiệp vụ.',
-        bodyVi:
+          '<soap:Header> carries protocol-level metadata (WS-Security token outbound, processing CoreNode trace inbound) decoupled from business payload.'
+        ),
+        bodyVi: tr(
+          lang,
           '<soap:Body> chứa <bank:GetAccountBalanceResponse> tuân thủ nghiêm ngặt kiểu dữ liệu XSD trong tài liệu WSDL.',
+          '<soap:Body> contains <bank:GetAccountBalanceResponse> strictly validated against the XSD types in the WSDL contract.'
+        ),
       },
     };
   }
@@ -924,11 +1054,21 @@ export function executeSoapSimulation(
   </soap:Body>
 </soap:Envelope>`,
       envelopeBreakdown: {
-        envelopeVi: 'Khung XML SOAP bảo toàn tính toàn vẹn cấu trúc cho giao dịch chuyển tiền liên ngân hàng.',
-        headerVi:
+        envelopeVi: tr(
+          lang,
+          'Khung XML SOAP bảo toàn tính toàn vẹn cấu trúc cho giao dịch chuyển tiền liên ngân hàng.',
+          'The SOAP XML envelope preserves structural integrity for the interbank funds transfer transaction.'
+        ),
+        headerVi: tr(
+          lang,
           'Sử dụng TransactionIdempotencyKey trong <soap:Header> để chống trừ tiền hai lần nếu đường truyền bị đứt giữa chừng.',
-        bodyVi:
+          'Uses TransactionIdempotencyKey inside <soap:Header> to prevent double-debiting if a network drop triggers a retry.'
+        ),
+        bodyVi: tr(
+          lang,
           '<bank:TransferMoneyResponse> xác nhận mã hạch toán (SettlementId) và số dư còn lại.',
+          '<bank:TransferMoneyResponse> confirms the official SettlementId and remaining balance.'
+        ),
       },
     };
   }
@@ -959,9 +1099,21 @@ export function executeSoapSimulation(
   </soap:Body>
 </soap:Envelope>`,
     envelopeBreakdown: {
-      envelopeVi: 'Gói tin SOAP Envelope chứa danh sách lịch sử giao dịch có cấu trúc phân cấp.',
-      headerVi: 'Xác thực kênh kết nối doanh nghiệp qua AuthHeader.',
-      bodyVi: 'Trả về danh sách các phần tử <bank:Transaction> theo đúng định nghĩa mảng trong WSDL.',
+      envelopeVi: tr(
+        lang,
+        'Gói tin SOAP Envelope chứa danh sách lịch sử giao dịch có cấu trúc phân cấp.',
+        'The SOAP Envelope wraps a hierarchically structured list of ledger transactions.'
+      ),
+      headerVi: tr(
+        lang,
+        'Xác thực kênh kết nối doanh nghiệp qua AuthHeader.',
+        'Authenticates the enterprise channel via AuthHeader.'
+      ),
+      bodyVi: tr(
+        lang,
+        'Trả về danh sách các phần tử <bank:Transaction> theo đúng định nghĩa mảng trong WSDL.',
+        'Returns a sequence of <bank:Transaction> elements conforming to the WSDL array sequence definition.'
+      ),
     },
   };
 }
@@ -1077,7 +1229,8 @@ const UNIVERSITY_DB: Record<string, UniversityStudentRecord> = {
 };
 
 export function executeGraphqlSimulation(
-  selection: GraphqlFieldSelection
+  selection: GraphqlFieldSelection,
+  lang: Language = 'vi'
 ): GraphqlSimulationResult {
   const record = UNIVERSITY_DB[selection.studentId] ?? UNIVERSITY_DB['SV-101']!;
 
@@ -1157,7 +1310,11 @@ export function executeGraphqlSimulation(
     graphqlByteSize,
     restByteSize,
     resolversTriggered: resolvers,
-    explanationVi: `GraphQL Server chỉ thực thi ${resolvers.length} Resolver tương ứng với các trường được yêu cầu trong Query, trả về đúng ${graphqlByteSize} bytes (so với ${restByteSize} bytes nếu gọi REST lấy toàn bộ Object kèm các trường thừa như phone, address, budgetVnd).`,
+    explanationVi: tr(
+      lang,
+      `GraphQL Server chỉ thực thi ${resolvers.length} Resolver tương ứng với các trường được yêu cầu trong Query, trả về đúng ${graphqlByteSize} bytes (so với ${restByteSize} bytes nếu gọi REST lấy toàn bộ Object kèm các trường thừa như phone, address, budgetVnd).`,
+      `The GraphQL Server executed only ${resolvers.length} Resolver(s) matching the requested fields in your Query, returning ${graphqlByteSize} bytes (compared to ${restByteSize} bytes if calling REST and over-fetching unused fields like phone, address, and budgetVnd).`
+    ),
   };
 }
 
@@ -1193,7 +1350,8 @@ export interface GrpcSimulationResult {
 export function executeGrpcSimulation(
   pattern: GrpcPatternType,
   orderId: string,
-  amountVnd: number
+  amountVnd: number,
+  lang: Language = 'vi'
 ): GrpcSimulationResult {
   if (pattern === 'unary') {
     return {
@@ -1210,8 +1368,11 @@ export function executeGrpcSimulation(
           methodName: 'PaymentService/ProcessPayment',
           structuredMessage: `PaymentRequest { order_id: "${orderId}", amount_vnd: ${amountVnd}, currency: "VND" }`,
           conceptualBinaryHex: '0A 0A 4F 52 44 2D 32 30 32 36 10 80 C2 D7 2F 1A 03 56 4E 44',
-          explanationVi:
+          explanationVi: tr(
+            lang,
             'Order Service gọi hàm Stub cục bộ; Protobuf nén các trường thành Tag-Length-Value nhị phân và gửi qua 1 HTTP/2 DATA Frame.',
+            'Order Service invokes the local Stub method; Protobuf encodes fields into binary Tag-Length-Value bytes sent in a single HTTP/2 DATA Frame.'
+          ),
         },
         {
           frameIndex: 2,
@@ -1220,8 +1381,11 @@ export function executeGrpcSimulation(
           methodName: 'PaymentService/ProcessPayment',
           structuredMessage: `PaymentResponse { transaction_id: "TXN-9921", status: APPROVED, grpc_status: 0 (OK) }`,
           conceptualBinaryHex: '0A 08 54 58 4E 2D 39 39 32 31 10 01 [HEADERS: grpc-status=0]',
-          explanationVi:
+          explanationVi: tr(
+            lang,
             'Payment Service giải mã nhị phân, xử lý thanh toán và trả về kết quả kèm HTTP/2 Trailing Header grpc-status: 0 (OK).',
+            'Payment Service decodes the binary frame, authorizes payment, and returns the binary response with HTTP/2 Trailing Header grpc-status: 0 (OK).'
+          ),
         },
       ],
     };
@@ -1243,7 +1407,11 @@ export function executeGrpcSimulation(
           methodName: 'OrderService/WatchOrderFulfillment',
           structuredMessage: `OrderQuery { order_id: "${orderId}" }`,
           conceptualBinaryHex: '0A 0A 4F 52 44 2D 32 30 32 36',
-          explanationVi: 'Client gửi 1 yêu cầu duy nhất để đăng ký nhận luồng trạng thái đơn hàng.',
+          explanationVi: tr(
+            lang,
+            'Client gửi 1 yêu cầu duy nhất để đăng ký nhận luồng trạng thái đơn hàng.',
+            'Client sends a single request to subscribe to the live order fulfillment stream.'
+          ),
         },
         {
           frameIndex: 2,
@@ -1252,7 +1420,11 @@ export function executeGrpcSimulation(
           methodName: 'Stream Frame #1',
           structuredMessage: `FulfillmentEvent { stage: "PAYMENT_VERIFIED", progress_pct: 33 }`,
           conceptualBinaryHex: '0A 10 50 41 59 4D 45 4E 54 5F 56 45 52 49 46 49 45 44 10 21',
-          explanationVi: 'Server đẩy Frame #1 ngay khi xác nhận thanh toán trên cùng luồng HTTP/2.',
+          explanationVi: tr(
+            lang,
+            'Server đẩy Frame #1 ngay khi xác nhận thanh toán trên cùng luồng HTTP/2.',
+            'Server pushes Frame #1 over the open HTTP/2 stream as soon as payment is verified.'
+          ),
         },
         {
           frameIndex: 3,
@@ -1261,7 +1433,11 @@ export function executeGrpcSimulation(
           methodName: 'Stream Frame #2',
           structuredMessage: `FulfillmentEvent { stage: "INVENTORY_RESERVED", progress_pct: 66 }`,
           conceptualBinaryHex: '0A 12 49 4E 56 45 4E 54 4F 52 59 5F 52 45 53 45 52 56 45 44 10 42',
-          explanationVi: 'Server đẩy tiếp Frame #2 khi kho hàng đã khóa tồn kho sản phẩm.',
+          explanationVi: tr(
+            lang,
+            'Server đẩy tiếp Frame #2 khi kho hàng đã khóa tồn kho sản phẩm.',
+            'Server pushes Frame #2 once the warehouse service locks inventory.'
+          ),
         },
         {
           frameIndex: 4,
@@ -1270,7 +1446,11 @@ export function executeGrpcSimulation(
           methodName: 'Stream Frame #3 (EOS)',
           structuredMessage: `FulfillmentEvent { stage: "READY_FOR_DISPATCH", progress_pct: 100 }`,
           conceptualBinaryHex: '0A 12 52 45 41 44 59 5F 46 4F 52 5F 44 49 53 50 41 54 43 48 10 64',
-          explanationVi: 'Server gửi Frame cuối cùng và đóng stream với cờ END_STREAM.',
+          explanationVi: tr(
+            lang,
+            'Server gửi Frame cuối cùng và đóng stream với cờ END_STREAM.',
+            'Server transmits the final frame and closes the stream with the END_STREAM flag.'
+          ),
         },
       ],
     };
@@ -1292,7 +1472,11 @@ export function executeGrpcSimulation(
           methodName: 'Client Stream Chunk #1',
           structuredMessage: `StockDelta { sku: "SKU-101", warehouse: "WH-HCM", delta: -2 }`,
           conceptualBinaryHex: '0A 07 53 4B 55 2D 31 30 31 18 FE FF FF FF 0F',
-          explanationVi: 'Client đẩy liên tiếp các bản ghi biến động kho lên Server qua stream.',
+          explanationVi: tr(
+            lang,
+            'Client đẩy liên tiếp các bản ghi biến động kho lên Server qua stream.',
+            'Client streams consecutive inventory delta chunks to the Server.'
+          ),
         },
         {
           frameIndex: 2,
@@ -1301,7 +1485,11 @@ export function executeGrpcSimulation(
           methodName: 'Client Stream Chunk #2 (EOF)',
           structuredMessage: `StockDelta { sku: "SKU-204", warehouse: "WH-HN", delta: +50 }`,
           conceptualBinaryHex: '0A 07 53 4B 55 2D 32 30 34 18 32',
-          explanationVi: 'Client gửi bản ghi thứ hai và báo hiệu kết thúc luồng gửi (Half-Close).',
+          explanationVi: tr(
+            lang,
+            'Client gửi bản ghi thứ hai và báo hiệu kết thúc luồng gửi (Half-Close).',
+            'Client sends the second chunk and signals stream completion (Half-Close).'
+          ),
         },
         {
           frameIndex: 3,
@@ -1310,7 +1498,11 @@ export function executeGrpcSimulation(
           methodName: 'InventoryService/UploadStockTelemetry',
           structuredMessage: `BatchSyncSummary { processed_items: 2, status: "COMMITTED" }`,
           conceptualBinaryHex: '08 02 12 09 43 4F 4D 4D 49 54 54 45 44',
-          explanationVi: 'Server tổng hợp toàn bộ luồng dữ liệu của Client và trả về 1 phản hồi tổng kết.',
+          explanationVi: tr(
+            lang,
+            'Server tổng hợp toàn bộ luồng dữ liệu của Client và trả về 1 phản hồi tổng kết.',
+            'Server aggregates the entire client stream and returns a single summary response.'
+          ),
         },
       ],
     };
@@ -1331,7 +1523,11 @@ export function executeGrpcSimulation(
         methodName: 'Signal #1',
         structuredMessage: `TransactionSignal { order_id: "${orderId}", ip_region: "VN", amount: ${amountVnd} }`,
         conceptualBinaryHex: '0A 0A 4F 52 44 2D 32 30 32 36 12 02 56 4E',
-        explanationVi: 'Client phát tín hiệu giao dịch #1 lên luồng hai chiều.',
+        explanationVi: tr(
+          lang,
+          'Client phát tín hiệu giao dịch #1 lên luồng hai chiều.',
+          'Client emits transaction signal #1 onto the bidirectional stream.'
+        ),
       },
       {
         frameIndex: 2,
@@ -1340,7 +1536,11 @@ export function executeGrpcSimulation(
         methodName: 'Decision #1',
         structuredMessage: `RiskDecision { risk_score: 0.04, action: "ALLOW" }`,
         conceptualBinaryHex: '0D CD CC 2C 3D 12 05 41 4C 4C 4F 57',
-        explanationVi: 'Server phản hồi ngay quyết định ALLOW trong khi luồng vẫn mở.',
+        explanationVi: tr(
+          lang,
+          'Server phản hồi ngay quyết định ALLOW trong khi luồng vẫn mở.',
+          'Server immediately streams back an ALLOW decision while keeping the stream open.'
+        ),
       },
       {
         frameIndex: 3,
@@ -1349,7 +1549,11 @@ export function executeGrpcSimulation(
         methodName: 'Signal #2',
         structuredMessage: `TransactionSignal { order_id: "${orderId}-B", velocity_1m: 18 }`,
         conceptualBinaryHex: '0A 0C 4F 52 44 2D 32 30 32 36 2D 42 18 12',
-        explanationVi: 'Client phát tiếp tín hiệu thứ 2 độc lập trên cùng kết nối HTTP/2.',
+        explanationVi: tr(
+          lang,
+          'Client phát tiếp tín hiệu thứ 2 độc lập trên cùng kết nối HTTP/2.',
+          'Client transmits a second independent signal over the same HTTP/2 stream.'
+        ),
       },
       {
         frameIndex: 4,
@@ -1358,7 +1562,11 @@ export function executeGrpcSimulation(
         methodName: 'Decision #2',
         structuredMessage: `RiskDecision { risk_score: 0.89, action: "STEP_UP_2FA" }`,
         conceptualBinaryHex: '0D EC 51 63 3F 12 0B 53 54 45 50 5F 55 50 5F 32 46 41',
-        explanationVi: 'Server phát hiện tần suất bất thường và đẩy phản hồi yêu cầu xác thực 2FA tức thì.',
+        explanationVi: tr(
+          lang,
+          'Server phát hiện tần suất bất thường và đẩy phản hồi yêu cầu xác thực 2FA tức thì.',
+          'Server detects abnormal velocity and pushes an instant STEP_UP_2FA risk decision.'
+        ),
       },
     ],
   };
@@ -1394,14 +1602,17 @@ export interface WebhookSimulationResult {
   attempts: WebhookAttemptLog[];
 }
 
-export function simulateWebhookDelivery(params: {
-  eventType: WebhookEventType;
-  callbackUrl: string;
-  secretKey: string;
-  tamperSignature: boolean;
-  simulateReceiver500Error: boolean;
-  orderAmountVnd: number;
-}): WebhookSimulationResult {
+export function simulateWebhookDelivery(
+  params: {
+    eventType: WebhookEventType;
+    callbackUrl: string;
+    secretKey: string;
+    tamperSignature: boolean;
+    simulateReceiver500Error: boolean;
+    orderAmountVnd: number;
+  },
+  lang: Language = 'vi'
+): WebhookSimulationResult {
   const eventId = `evt_${params.eventType.replace('.', '_')}_2026_901`;
   const payloadObj = {
     id: eventId,
@@ -1446,8 +1657,11 @@ export function simulateWebhookDelivery(params: {
       delayLabel: '0s (Immediate)',
       httpStatus: 401,
       outcome: 'SIGNATURE_REJECTED',
-      explanationVi:
+      explanationVi: tr(
+        lang,
         'Webhook Endpoint nhận HTTP POST nhưng khi tính lại HMAC-SHA256 từ Body và Secret Key thì không khớp với Header X-Webhook-Signature -> Từ chối với mã 401 để chống giả mạo!',
+        'Webhook Endpoint received HTTP POST, but recomputing HMAC-SHA256 from the Body and Secret Key did not match X-Webhook-Signature -> Rejected with HTTP 401!'
+      ),
     });
   } else if (params.simulateReceiver500Error) {
     attempts.push(
@@ -1456,24 +1670,33 @@ export function simulateWebhookDelivery(params: {
         delayLabel: '0s (Initial Push)',
         httpStatus: 500,
         outcome: 'FAILED_WILL_RETRY',
-        explanationVi:
+        explanationVi: tr(
+          lang,
           'Lần gửi #1: Server nhận Webhook đang quá tải trả về 500 Internal Server Error. Nhà cung cấp đưa sự kiện vào hàng đợi Retry.',
+          'Attempt #1: Receiver endpoint returned 500 Internal Server Error. Provider queued the event for Exponential Backoff retry.'
+        ),
       },
       {
         attemptNumber: 2,
         delayLabel: '+5s (Exponential Backoff #1)',
         httpStatus: 503,
         outcome: 'FAILED_WILL_RETRY',
-        explanationVi:
+        explanationVi: tr(
+          lang,
           'Lần gửi #2 (sau 5 giây): Endpoint vẫn phản hồi 503 Service Unavailable. Tăng gấp đôi thời gian chờ (Exponential Backoff).',
+          'Attempt #2 (+5s): Receiver returned 503 Service Unavailable. Provider doubled the backoff interval.'
+        ),
       },
       {
         attemptNumber: 3,
         delayLabel: '+25s (Exponential Backoff #2 - Recovered)',
         httpStatus: 200,
         outcome: 'DELIVERED',
-        explanationVi:
+        explanationVi: tr(
+          lang,
           'Lần gửi #3 (sau 25 giây): Server nhận đã phục hồi, kiểm tra Idempotency Key chưa xử lý, cập nhật đơn hàng và trả về 200 OK để dừng chu trình Retry.',
+          'Attempt #3 (+25s): Receiver recovered, verified HMAC & Idempotency Key, updated the order, and returned 200 OK to stop retries.'
+        ),
       }
     );
   } else {
@@ -1482,8 +1705,11 @@ export function simulateWebhookDelivery(params: {
       delayLabel: '0s (Immediate Push)',
       httpStatus: 200,
       outcome: 'DELIVERED',
-      explanationVi:
+      explanationVi: tr(
+        lang,
         'Nhà cung cấp chủ động bắn HTTP POST tới Callback URL; hệ thống nhận xác thực chữ ký HMAC thành công và phản hồi 200 OK trong 38ms.',
+        'Provider actively pushed HTTP POST to Callback URL; consumer verified the HMAC-SHA256 signature and acknowledged with 200 OK in 38ms.'
+      ),
     });
   }
 
@@ -1546,13 +1772,16 @@ export interface WebRtcSimulationResult {
   }[];
 }
 
-export function simulateWebRtcSession(params: {
-  natTopology: WebRtcNatTopology;
-  videoCodec: WebRtcVideoCodec;
-  enableVideo: boolean;
-  enableAudio: boolean;
-  enableDataChannel: boolean;
-}): WebRtcSimulationResult {
+export function simulateWebRtcSession(
+  params: {
+    natTopology: WebRtcNatTopology;
+    videoCodec: WebRtcVideoCodec;
+    enableVideo: boolean;
+    enableAudio: boolean;
+    enableDataChannel: boolean;
+  },
+  lang: Language = 'vi'
+): WebRtcSimulationResult {
   const isDirectP2P = params.natTopology !== 'symmetric-nat-turn';
 
   const activePathLabel =
@@ -1625,8 +1854,11 @@ export function simulateWebRtcSession(params: {
       ipPort: '192.168.1.10:51002 (UDP)',
       priority: 2122260223,
       selected: params.natTopology === 'lan-host',
-      descriptionVi:
+      descriptionVi: tr(
+        lang,
         'Địa chỉ IP nội bộ (LAN Host Candidate). Được chọn khi cả 2 máy cùng nằm trong một mạng Wi-Fi/LAN.',
+        'Local LAN Host Candidate. Selected when both peers share the same local Wi-Fi/LAN subnet.'
+      ),
     },
     {
       id: 'cand-srflx-a',
@@ -1635,8 +1867,11 @@ export function simulateWebRtcSession(params: {
       ipPort: '203.113.148.22:54321 (STUN Reflexive)',
       priority: 1686052607,
       selected: params.natTopology === 'cone-nat-stun',
-      descriptionVi:
+      descriptionVi: tr(
+        lang,
         'Địa chỉ IP/Port công cộng do STUN Server phát hiện. Cho phép đục lỗ NAT (UDP Hole Punching) để truyền P2P trực tiếp qua Internet.',
+        'Public IP/Port discovered via STUN Server (srflx). Enables UDP Hole Punching for direct P2P streaming over the Internet.'
+      ),
     },
     {
       id: 'cand-relay-a',
@@ -1645,8 +1880,11 @@ export function simulateWebRtcSession(params: {
       ipPort: '34.120.88.10:3478 (TURN Relay)',
       priority: 41819903,
       selected: params.natTopology === 'symmetric-nat-turn',
-      descriptionVi:
+      descriptionVi: tr(
+        lang,
         'Địa chỉ chuyển tiếp trên TURN Server. Chỉ kích hoạt khi tường lửa Symmetric NAT chặn hoàn toàn kết nối P2P trực tiếp.',
+        'TURN Relay address. Activated only when restrictive Symmetric NAT firewalls block direct P2P UDP connections.'
+      ),
     },
   ];
 
@@ -1654,26 +1892,42 @@ export function simulateWebRtcSession(params: {
     {
       stage: 1,
       title: '1. WebSocket Signaling (SDP Offer & Answer)',
-      detailVi:
-        'Peer A và Peer B kết nối tới Signaling Server (WebSocket) để trao đổi bản mô tả phiên SDP (thống nhất codec ' +
-        params.videoCodec +
-        '/Opus và khóa vân tay DTLS).',
+      detailVi: tr(
+        lang,
+        `Peer A và Peer B kết nối tới Signaling Server (WebSocket) để trao đổi bản mô tả phiên SDP (thống nhất codec ${params.videoCodec}/Opus và khóa vân tay DTLS).`,
+        `Peer A and Peer B connect to the WebSocket Signaling Server to exchange SDP Offer/Answer manifests (negotiating ${params.videoCodec}/Opus codecs and DTLS fingerprints).`
+      ),
     },
     {
       stage: 2,
       title: '2. ICE Candidate Gathering (STUN / TURN)',
       detailVi:
         params.natTopology === 'lan-host'
-          ? 'Hai Peer phát hiện cùng dải mạng LAN nội bộ nên chọn ngay cặp Host Candidate (192.168.1.x).'
+          ? tr(
+              lang,
+              'Hai Peer phát hiện cùng dải mạng LAN nội bộ nên chọn ngay cặp Host Candidate (192.168.1.x).',
+              'Both peers detect the same local LAN subnet and select the direct Host Candidate pair (192.168.1.x).'
+            )
           : params.natTopology === 'cone-nat-stun'
-          ? 'Hai Peer gọi STUN Server (stun:19302) để lấy IP/Port công cộng (srflx) và đục lỗ UDP thành công.'
-          : 'Tường lửa doanh nghiệp (Symmetric NAT) chặn kết nối UDP trực tiếp! ICE tự động chuyển sang ứng viên dự phòng TURN Relay (typ relay).',
+          ? tr(
+              lang,
+              'Hai Peer gọi STUN Server (stun:19302) để lấy IP/Port công cộng (srflx) và đục lỗ UDP thành công.',
+              'Both peers query the STUN Server (stun:19302) to discover their public IP/Port (srflx) and complete UDP NAT hole punching.'
+            )
+          : tr(
+              lang,
+              'Tường lửa doanh nghiệp (Symmetric NAT) chặn kết nối UDP trực tiếp! ICE tự động chuyển sang ứng viên dự phòng TURN Relay (typ relay).',
+              'Corporate Symmetric NAT firewall blocked direct UDP! ICE automatically falls back to the TURN Relay candidate (typ relay).'
+            ),
     },
     {
       stage: 3,
       title: '3. DTLS-SRTP Encrypted Handshake',
-      detailVi:
+      detailVi: tr(
+        lang,
         'Hai Peer thực hiện bắt tay mật mã DTLS trực tiếp trên luồng UDP và đối chiếu khớp chứng chỉ a=fingerprint trong SDP.',
+        'Both peers complete a direct DTLS cryptographic handshake over UDP and verify certificate fingerprints against the SDP a=fingerprint attribute.'
+      ),
     },
     {
       stage: 4,
@@ -1681,8 +1935,16 @@ export function simulateWebRtcSession(params: {
         ? '4. Direct P2P Media & DataChannel Streaming'
         : '4. TURN-Relayed Media & DataChannel Streaming',
       detailVi: isDirectP2P
-        ? `Luồng dữ liệu chảy trực tiếp giữa trình duyệt Peer A ⇄ Peer B với độ trễ chỉ ${estimatedRttMs}ms, tải trên Signaling Server = 0%.`
-        : `Luồng dữ liệu được chuyển tiếp an toàn qua TURN Server với độ trễ ${estimatedRttMs}ms để vượt qua tường lửa khắt khe.`,
+        ? tr(
+            lang,
+            `Luồng dữ liệu chảy trực tiếp giữa trình duyệt Peer A ⇄ Peer B với độ trễ chỉ ${estimatedRttMs}ms, tải trên Signaling Server = 0%.`,
+            `Media and DataChannel packets flow directly Peer A ⇄ Peer B with ${estimatedRttMs}ms RTT and 0% media bandwidth on the Signaling Server.`
+          )
+        : tr(
+            lang,
+            `Luồng dữ liệu được chuyển tiếp an toàn qua TURN Server với độ trễ ${estimatedRttMs}ms để vượt qua tường lửa khắt khe.`,
+            `Encrypted packets are relayed through the TURN Server with ${estimatedRttMs}ms RTT to bypass the restrictive firewall.`
+          ),
     },
   ];
 
