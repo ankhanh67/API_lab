@@ -8,13 +8,11 @@ import {
   RotateCcw,
   ChevronLeft,
   ChevronRight,
-  Cpu,
   Activity,
   Database,
   Server,
   Monitor,
   ShieldCheck,
-  AlertTriangle,
 } from 'lucide-react';
 import { ApiTechnologyId, HttpMethod } from '@/types/api';
 import {
@@ -22,10 +20,15 @@ import {
   UniversalSimScenarioMode,
   buildUniversalLifecycleSteps,
 } from '@/simulations/engines';
-import { SITE_CONFIG, TECH_CLASSIFICATIONS } from '@/config/site';
+import { SITE_CONFIG, getTechClassifications } from '@/config/site';
 import { DedicatedModulePlayground } from '@/components/playgrounds/DedicatedPlaygrounds';
+import { useAppPreferences } from '@/context/AppPreferencesContext';
 
 export default function InteractiveApiLabPage() {
+  const { lang } = useAppPreferences();
+  const isEn = lang === 'en';
+  const techList = getTechClassifications(lang);
+
   // Universal Simulator Configuration State
   const [config, setConfig] = useState<UniversalSimConfig>({
     method: 'POST',
@@ -45,7 +48,7 @@ export default function InteractiveApiLabPage() {
   const [selectedTechTab, setSelectedTechTab] =
     useState<ApiTechnologyId>('rest');
 
-  const steps = buildUniversalLifecycleSteps(config);
+  const steps = buildUniversalLifecycleSteps(config, lang);
   const activeStep = steps[currentStepIdx] ?? steps[0]!;
 
   // Auto-advance timer when simStatus === 'running'
@@ -100,18 +103,20 @@ export default function InteractiveApiLabPage() {
             <span>SECTION 5: INTERACTIVE API LABORATORY</span>
           </div>
           <h1 className="text-3xl font-extrabold text-white sm:text-4xl">
-            Phòng Thí nghiệm Giao tiếp API (Interactive API Laboratory)
+            {isEn
+              ? 'Interactive API Communication Laboratory'
+              : 'Phòng Thí nghiệm Giao tiếp API (Interactive API Laboratory)'}
           </h1>
           <p className="max-w-3xl text-sm text-slate-300 leading-relaxed">
-            Không gian thực nghiệm kỹ thuật trung tâm: Khám phá Bộ mô phỏng Vòng đời
-            Request/Response 8 bước (Universal Simulator) đồng bộ hóa với sơ đồ truyền
-            thông trực quan, cùng 7 môi trường mô phỏng chuyên biệt cho từng giao thức.
+            {isEn
+              ? 'Central engineering simulation workspace: Explore the 8-Step Universal Request/Response Lifecycle Simulator synchronized with live architecture telemetry, plus 7 dedicated protocol playgrounds.'
+              : 'Không gian thực nghiệm kỹ thuật trung tâm: Khám phá Bộ mô phỏng Vòng đời Request/Response 8 bước (Universal Simulator) đồng bộ hóa với sơ đồ truyền thông trực quan, cùng 7 môi trường mô phỏng chuyên biệt cho từng giao thức.'}
           </p>
         </div>
       </section>
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 space-y-16">
-        {/* PART A & C: UNIVERSAL 8-STEP REQUEST/RESPONSE SIMULATOR + SYNCHRONIZED VISUALIZATION */}
+        {/* PART A & C: UNIVERSAL 8-STEP REQUEST/RESPONSE SIMULATOR */}
         <section className="rounded-lg border border-sky-500/40 bg-slate-925 p-6 space-y-6">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800 pb-4">
             <div>
@@ -119,11 +124,13 @@ export default function InteractiveApiLabPage() {
                 PART A & C: UNIVERSAL REQUEST/RESPONSE SIMULATOR & COMMUNICATION WORKSPACE
               </span>
               <h2 className="text-2xl font-bold text-white mt-1">
-                Bộ Mô phỏng Vòng đời 8 Bước: Client → API Layer → Server → Database
+                {isEn
+                  ? '8-Step Lifecycle Simulator: Client → API Layer → Server → Database'
+                  : 'Bộ Mô phỏng Vòng đời 8 Bước: Client → API Layer → Server → Database'}
               </h2>
             </div>
 
-            {/* Playback Controls: Start, Pause, Resume, Reset, Step Prev/Next */}
+            {/* Playback Controls */}
             <div className="flex flex-wrap items-center gap-2">
               {simStatus === 'idle' || simStatus === 'completed' ? (
                 <button
@@ -182,7 +189,8 @@ export default function InteractiveApiLabPage() {
                   <ChevronLeft className="h-4 w-4" />
                 </button>
                 <span className="font-mono text-xs px-2 text-sky-300 font-bold">
-                  Bước {activeStep.stepNumber} / 8
+                  {isEn ? 'Step ' : 'Bước '}
+                  {activeStep.stepNumber} / 8
                 </span>
                 <button
                   type="button"
@@ -205,13 +213,21 @@ export default function InteractiveApiLabPage() {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 rounded border border-slate-800 bg-slate-950 p-4">
             <div className="lg:col-span-5 space-y-2">
               <p className="font-mono text-[11px] font-bold uppercase text-slate-400">
-                1. Chọn Kịch bản Trạng thái / Chèn Lỗi (Fault Injection):
+                {isEn
+                  ? '1. Select Outcome Scenario / Fault Injection:'
+                  : '1. Chọn Kịch bản Trạng thái / Chèn Lỗi (Fault Injection):'}
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {(
                   [
-                    { id: 'create-201', label: '201 Created (Chuẩn)' },
-                    { id: 'normal-200', label: '200 OK (Truy vấn)' },
+                    {
+                      id: 'create-201',
+                      label: isEn ? '201 Created (Standard)' : '201 Created (Chuẩn)',
+                    },
+                    {
+                      id: 'normal-200',
+                      label: isEn ? '200 OK (Query)' : '200 OK (Truy vấn)',
+                    },
                     { id: 'bad-request-400', label: '400 Schema Error' },
                     { id: 'unauthorized-401', label: '401 Auth Error' },
                     { id: 'server-error-500', label: '500 DB Failure' },
@@ -306,14 +322,15 @@ export default function InteractiveApiLabPage() {
             </div>
           </div>
 
-          {/* PART C: SYNCHRONIZED VISUAL ARCHITECTURE WORKSPACE (3 Primary Components + DB) */}
+          {/* PART C: SYNCHRONIZED VISUAL ARCHITECTURE WORKSPACE */}
           <div className="rounded-lg border border-slate-800 bg-slate-950 p-5 space-y-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Activity className="h-4 w-4 text-sky-400" />
                 <span className="font-mono text-xs font-bold uppercase text-slate-200">
-                  Sơ đồ Trực quan Hóa Truyền thông Đồng bộ Trạng thái (Synchronized
-                  Architecture Workspace)
+                  {isEn
+                    ? 'Synchronized Architecture Telemetry Workspace'
+                    : 'Sơ đồ Trực quan Hóa Truyền thông Đồng bộ Trạng thái (Synchronized Architecture Workspace)'}
                 </span>
               </div>
               <span className="rounded border border-sky-500/40 bg-sky-950/60 px-2.5 py-0.5 font-mono text-xs text-sky-300">
@@ -321,7 +338,7 @@ export default function InteractiveApiLabPage() {
               </span>
             </div>
 
-            {/* 4 Component Nodes with Directional Pulse Connectors */}
+            {/* 4 Component Nodes */}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
               {(
                 [
@@ -425,7 +442,7 @@ export default function InteractiveApiLabPage() {
                       </span>
                     </div>
                     <p className="text-[11px] font-semibold mt-1 line-clamp-2">
-                      {st.titleVi.replace(/^Bước \d+:\s*/, '')}
+                      {st.titleVi.replace(/^(Bước|Step) \d+:\s*/, '')}
                     </p>
                   </button>
                 );
@@ -451,7 +468,9 @@ export default function InteractiveApiLabPage() {
                 </p>
                 <div className="rounded border border-slate-800 bg-slate-950 p-3 text-xs text-slate-300">
                   <span className="font-mono text-[11px] font-bold text-emerald-400 block mb-1">
-                    Cơ chế Kỹ thuật (Technical Mechanism):
+                    {isEn
+                      ? 'Technical Mechanism:'
+                      : 'Cơ chế Kỹ thuật (Technical Mechanism):'}
                   </span>
                   {activeStep.technicalMechanismVi}
                 </div>
@@ -460,8 +479,9 @@ export default function InteractiveApiLabPage() {
               <div className="lg:col-span-6 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-xs font-semibold text-amber-300">
-                    Dữ liệu / Gói tin tại Bước {activeStep.stepNumber} (Live Payload
-                    Snapshot)
+                    {isEn
+                      ? `Live Payload Snapshot at Step ${activeStep.stepNumber}`
+                      : `Dữ liệu / Gói tin tại Bước ${activeStep.stepNumber} (Live Payload Snapshot)`}
                   </span>
                   <span className="font-mono text-[10px] text-slate-400">
                     Direction: {activeStep.direction.toUpperCase()}
@@ -483,18 +503,21 @@ export default function InteractiveApiLabPage() {
                 PART B: DEDICATED PROTOCOL SIMULATORS
               </span>
               <h2 className="text-2xl font-bold text-white mt-1">
-                7 Môi trường Mô phỏng Chuyên biệt theo Đặc trưng Công nghệ
+                {isEn
+                  ? '7 Dedicated Technology Simulation Environments'
+                  : '7 Môi trường Mô phỏng Chuyên biệt theo Đặc trưng Công nghệ'}
               </h2>
               <p className="text-xs text-slate-400 mt-1">
-                Mỗi công nghệ có một mô hình tương tác riêng biệt. Chọn tab bên dưới để
-                thực nghiệm trực tiếp.
+                {isEn
+                  ? 'Each technology has its own unique protocol interaction paradigm. Select a tab below to experiment live.'
+                  : 'Mỗi công nghệ có một mô hình tương tác riêng biệt. Chọn tab bên dưới để thực nghiệm trực tiếp.'}
               </p>
             </div>
           </div>
 
           {/* 7 Protocol Tabs */}
           <div className="flex flex-wrap gap-2 border-b border-slate-800 pb-3">
-            {TECH_CLASSIFICATIONS.map((tech, idx) => {
+            {techList.map((tech, idx) => {
               const active = tech.id === selectedTechTab;
               return (
                 <button

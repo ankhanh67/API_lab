@@ -69,3 +69,9 @@ Tài liệu này lưu lại toàn bộ quyết định kỹ thuật, trạng th�
   - Tạo workflow `.github/workflows/deploy.yml` tự động chạy `typecheck`, `vitest`, `next build` và xuất bản thư mục `out/` lên GitHub Pages.
   - Tối ưu workflow loại bỏ bước `configure-pages` dư thừa.
   - **Trang web đã chính thức live 100% tại:** `https://ankhanh67.github.io/API_lab/` (HTTP 200 OK).
+
+- **[x] Song ngữ Toàn diện (VI / EN) & Giao diện Sáng / Tối (Light / Dark Mode)** (Commits `b04210d`, `05e6c2b`, `fa066c6`):
+  - **Light / Dark Theme Engine (`tailwind.config.ts`, `src/app/globals.css`):** Ánh xạ bảng màu `slate` qua biến CSS RGB (`--slate-950`..`--slate-50`) theo class `html.dark` (Engineering Dark Blueprint) và `html.light` (Clean Technical Paper), kèm bộ quy tắc tối ưu độ tương phản cho các hộp trạng thái và chữ màu nhấn trên nền sáng.
+  - **AppPreferencesContext (`src/context/AppPreferencesContext.tsx`, `src/i18n/ui.ts`):** Quản lý và lưu trữ `lang` (`'vi' | 'en'`) và `theme` (`'dark' | 'light'`) trong `localStorage`, tích hợp nút chuyển đổi trực tiếp trên `Navbar`.
+  - **Bộ dữ liệu & Mô phỏng Song ngữ 100% (`src/data/en/*`, `src/simulations/engines.ts`):** Dịch toàn bộ 7 chuyên đề học thuật (12 mục/chuyên đề), Nền tảng API, 6 Kịch bản thực tế, Bảng so sánh 9 chiều, 16 câu hỏi Quiz và giải thích trong 7 bộ mô phỏng + Universal 8-Step Simulator sang Tiếng Anh.
+  - **Kiểm thử:** `21/21 Vitest tests pass` (4 test suites), `tsc --noEmit` 0 lỗi, `next build` thành công toàn bộ static routes.

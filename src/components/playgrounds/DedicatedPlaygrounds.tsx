@@ -1,21 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Play,
   RotateCcw,
-  CheckCircle2,
-  AlertTriangle,
-  ArrowRight,
   Wifi,
   WifiOff,
   Send,
-  RefreshCw,
   ShieldAlert,
   ShieldCheck,
-  FileCode,
   Database,
-  Activity,
 } from 'lucide-react';
 import { ApiTechnologyId, HttpMethod } from '@/types/api';
 import {
@@ -35,12 +29,15 @@ import {
   WebRtcVideoCodec,
   simulateWebRtcSession,
 } from '@/simulations/engines';
-import { SITE_CONFIG } from '@/config/site';
+import { useAppPreferences } from '@/context/AppPreferencesContext';
 
 // ============================================================================
 // 1. REST API INTERACTIVE PLAYGROUND
 // ============================================================================
 export function RestPlayground() {
+  const { lang } = useAppPreferences();
+  const isEn = lang === 'en';
+
   const [products, setProducts] = useState<RestProduct[]>(INITIAL_REST_PRODUCTS);
   const [method, setMethod] = useState<HttpMethod>('GET');
   const [path, setPath] = useState<string>('/api/products');
@@ -50,7 +47,7 @@ export function RestPlayground() {
   const [bodyText, setBodyText] = useState<string>(
     JSON.stringify(
       {
-        name: 'Tai nghe chống ồn Sony WH-1000XM5',
+        name: 'Sony WH-1000XM5 Headphones',
         category: 'hardware',
         price: 6990000,
         stock: 20,
@@ -61,15 +58,39 @@ export function RestPlayground() {
   );
 
   const [lastResult, setLastResult] = useState(() =>
-    simulateRestRequest({
-      method: 'GET',
-      path: '/api/products',
-      queryParams: {},
-      headers: { Authorization: 'Bearer valid_jwt_token_2026' },
-      bodyText: '',
-      currentProducts: INITIAL_REST_PRODUCTS,
-    })
+    simulateRestRequest(
+      {
+        method: 'GET',
+        path: '/api/products',
+        queryParams: {},
+        headers: { Authorization: 'Bearer valid_jwt_token_2026' },
+        bodyText: '',
+        currentProducts: INITIAL_REST_PRODUCTS,
+      },
+      lang
+    )
   );
+
+  useEffect(() => {
+    const qParams: Record<string, string> = {};
+    if (categoryQuery.trim()) qParams['category'] = categoryQuery.trim();
+    if (minPriceQuery.trim()) qParams['minPrice'] = minPriceQuery.trim();
+    setLastResult(
+      simulateRestRequest(
+        {
+          method: 'GET',
+          path: '/api/products',
+          queryParams: qParams,
+          headers: { Authorization: authHeader },
+          bodyText,
+          currentProducts: products,
+        },
+        lang
+      )
+    );
+    // Re-localize active explanation when language changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lang]);
 
   const runSimulation = (override?: {
     method?: HttpMethod;
@@ -91,17 +112,20 @@ export function RestPlayground() {
     if (categoryQuery.trim()) qParams['category'] = categoryQuery.trim();
     if (minPriceQuery.trim()) qParams['minPrice'] = minPriceQuery.trim();
 
-    const out = simulateRestRequest({
-      method: m,
-      path: p,
-      queryParams: qParams,
-      headers: {
-        Authorization: a,
-        'Content-Type': 'application/json',
+    const out = simulateRestRequest(
+      {
+        method: m,
+        path: p,
+        queryParams: qParams,
+        headers: {
+          Authorization: a,
+          'Content-Type': 'application/json',
+        },
+        bodyText: b,
+        currentProducts: products,
       },
-      bodyText: b,
-      currentProducts: products,
-    });
+      lang
+    );
 
     setProducts(out.updatedProducts);
     setLastResult(out);
@@ -114,14 +138,17 @@ export function RestPlayground() {
     setCategoryQuery('');
     setMinPriceQuery('');
     setAuthHeader('Bearer valid_jwt_token_2026');
-    const initialOut = simulateRestRequest({
-      method: 'GET',
-      path: '/api/products',
-      queryParams: {},
-      headers: { Authorization: 'Bearer valid_jwt_token_2026' },
-      bodyText: '',
-      currentProducts: INITIAL_REST_PRODUCTS,
-    });
+    const initialOut = simulateRestRequest(
+      {
+        method: 'GET',
+        path: '/api/products',
+        queryParams: {},
+        headers: { Authorization: 'Bearer valid_jwt_token_2026' },
+        bodyText: '',
+        currentProducts: INITIAL_REST_PRODUCTS,
+      },
+      lang
+    );
     setLastResult(initialOut);
   };
 
@@ -133,7 +160,9 @@ export function RestPlayground() {
             REST API INTERACTIVE PLAYGROUND — E-COMMERCE PRODUCT MANAGEMENT
           </span>
           <h3 className="text-lg font-bold text-white">
-            Trình Mô phỏng CRUD Tài nguyên /api/products
+            {isEn
+              ? '/api/products Resource CRUD Simulator'
+              : 'Trình Mô phỏng CRUD Tài nguyên /api/products'}
           </h3>
         </div>
         <button
@@ -142,18 +171,18 @@ export function RestPlayground() {
           className="inline-flex items-center gap-1.5 rounded border border-slate-700 bg-slate-900 px-3 py-1.5 font-mono text-xs text-slate-300 hover:border-sky-400"
         >
           <RotateCcw className="h-3.5 w-3.5" />
-          Khôi phục Dữ liệu Gốc
+          {isEn ? 'Reset Initial Data' : 'Khôi phục Dữ liệu Gốc'}
         </button>
       </div>
 
       {/* Quick Scenario Presets */}
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-mono text-[11px] text-slate-400">Kịch bản mẫu:</span>
+        <span className="font-mono text-[11px] text-slate-400">
+          {isEn ? 'Presets:' : 'Kịch bản mẫu:'}
+        </span>
         <button
           type="button"
-          onClick={() =>
-            runSimulation({ method: 'GET', path: '/api/products' })
-          }
+          onClick={() => runSimulation({ method: 'GET', path: '/api/products' })}
           className="rounded border border-slate-700 bg-slate-900 px-2.5 py-1 font-mono text-xs text-sky-300 hover:border-sky-500"
         >
           GET /api/products
@@ -175,7 +204,7 @@ export function RestPlayground() {
               path: '/api/products',
               body: JSON.stringify(
                 {
-                  name: 'Tai nghe chống ồn Sony WH-1000XM5',
+                  name: 'Sony WH-1000XM5 Headphones',
                   category: 'hardware',
                   price: 6990000,
                   stock: 20,
@@ -221,7 +250,7 @@ export function RestPlayground() {
           }
           className="rounded border border-rose-500/30 bg-rose-950/20 px-2.5 py-1 font-mono text-xs text-rose-300 hover:border-rose-400"
         >
-          Test Lỗi 404
+          {isEn ? 'Test 404 Error' : 'Test Lỗi 404'}
         </button>
         <button
           type="button"
@@ -234,7 +263,7 @@ export function RestPlayground() {
           }
           className="rounded border border-rose-500/30 bg-rose-950/20 px-2.5 py-1 font-mono text-xs text-rose-300 hover:border-rose-400"
         >
-          Test Lỗi 401
+          {isEn ? 'Test 401 Error' : 'Test Lỗi 401'}
         </button>
       </div>
 
@@ -268,7 +297,7 @@ export function RestPlayground() {
               className="inline-flex items-center justify-center gap-1.5 rounded bg-sky-500 px-4 py-2 font-mono text-xs font-bold text-slate-950 hover:bg-sky-400"
             >
               <Play className="h-3.5 w-3.5" />
-              Gửi Request
+              {isEn ? 'Send Request' : 'Gửi Request'}
             </button>
           </div>
 
@@ -276,13 +305,15 @@ export function RestPlayground() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div>
               <label className="block font-mono text-[10px] uppercase text-slate-400 mb-1">
-                Query Param: category (ví dụ: hardware, books)
+                {isEn
+                  ? 'Query Param: category (e.g., hardware, books)'
+                  : 'Query Param: category (ví dụ: hardware, books)'}
               </label>
               <input
                 type="text"
                 value={categoryQuery}
                 onChange={(e) => setCategoryQuery(e.target.value)}
-                placeholder="Tất cả danh mục"
+                placeholder={isEn ? 'All categories' : 'Tất cả danh mục'}
                 className="w-full rounded border border-slate-800 bg-slate-900 px-2.5 py-1.5 font-mono text-xs text-slate-200"
               />
             </div>
@@ -302,7 +333,9 @@ export function RestPlayground() {
 
           <div>
             <label className="block font-mono text-[10px] uppercase text-slate-400 mb-1">
-              Header Authorization (Đổi thành &quot;Bearer invalid_token&quot; để test lỗi 401)
+              {isEn
+                ? 'Authorization Header (Set to "Bearer invalid_token" to test 401)'
+                : 'Header Authorization (Đổi thành "Bearer invalid_token" để test lỗi 401)'}
             </label>
             <input
               type="text"
@@ -314,7 +347,9 @@ export function RestPlayground() {
 
           <div>
             <label className="block font-mono text-[10px] uppercase text-slate-400 mb-1">
-              JSON Request Body (Dùng cho POST / PATCH / PUT)
+              {isEn
+                ? 'JSON Request Body (Used for POST / PATCH / PUT)'
+                : 'JSON Request Body (Dùng cho POST / PATCH / PUT)'}
             </label>
             <textarea
               rows={5}
@@ -329,7 +364,9 @@ export function RestPlayground() {
             <div className="flex items-center justify-between mb-2">
               <span className="inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold text-emerald-400">
                 <Database className="h-3.5 w-3.5" />
-                Bảng Database `products` Hiện tại ({products.length} bản ghi)
+                {isEn
+                  ? `Live 'products' Database Table (${products.length} rows)`
+                  : `Bảng Database \`products\` Hiện tại (${products.length} bản ghi)`}
               </span>
             </div>
             <div className="space-y-1 max-h-36 overflow-y-auto">
@@ -341,7 +378,7 @@ export function RestPlayground() {
                   <span className="text-sky-300">#{p.id}</span>
                   <span className="text-slate-200 truncate max-w-[180px]">{p.name}</span>
                   <span className="text-emerald-400">
-                    {p.price.toLocaleString('vi-VN')}đ (Kho: {p.stock})
+                    {p.price.toLocaleString('vi-VN')}đ ({isEn ? 'Stock' : 'Kho'}: {p.stock})
                   </span>
                 </div>
               ))}
@@ -370,7 +407,9 @@ export function RestPlayground() {
 
           <div className="rounded border border-sky-500/30 bg-sky-950/20 p-3 text-xs text-slate-200 space-y-1.5">
             <p className="font-mono text-[11px] font-bold uppercase text-sky-400">
-              Giải thích Cơ chế vừa diễn ra:
+              {isEn
+                ? 'What Just Happened Under the Hood:'
+                : 'Giải thích Cơ chế vừa diễn ra:'}
             </p>
             <p className="leading-relaxed">{lastResult.response.explanationVi}</p>
             <div className="flex flex-wrap gap-1.5 pt-1">
@@ -414,11 +453,14 @@ export function RestPlayground() {
 // 2. SOAP API INTERACTIVE PLAYGROUND (CORE BANKING SERVICE)
 // ============================================================================
 export function SoapPlayground() {
+  const { lang } = useAppPreferences();
+  const isEn = lang === 'en';
+
   const [operation, setOperation] =
     useState<SoapOperationName>('GetAccountBalance');
-  const [accountId, setAccountId] = useState<string>('ACC-VN-8801');
-  const [toAccountId, setToAccountId] = useState<string>('ACC-VN-9920');
-  const [amount, setAmount] = useState<number>(25000000);
+  const [accountId] = useState<string>('ACC-VN-8801');
+  const [toAccountId] = useState<string>('ACC-VN-9920');
+  const [amount] = useState<number>(25000000);
   const [requestXml, setRequestXml] = useState<string>(() =>
     buildSoapRequestTemplate('GetAccountBalance', {
       accountId: 'ACC-VN-8801',
@@ -426,12 +468,11 @@ export function SoapPlayground() {
       amount: 25000000,
     })
   );
-  const [result, setResult] = useState(() =>
-    executeSoapSimulation('GetAccountBalance', requestXml)
-  );
   const [highlightSection, setHighlightSection] = useState<
     'envelope' | 'header' | 'body'
   >('body');
+
+  const result = executeSoapSimulation(operation, requestXml, lang);
 
   const selectOperation = (op: SoapOperationName) => {
     setOperation(op);
@@ -441,7 +482,6 @@ export function SoapPlayground() {
       amount,
     });
     setRequestXml(tpl);
-    setResult(executeSoapSimulation(op, tpl));
   };
 
   return (
@@ -452,7 +492,9 @@ export function SoapPlayground() {
             SOAP 1.2 XML PLAYGROUND — CORE BANKING WSDL SERVICE
           </span>
           <h3 className="text-lg font-bold text-white">
-            Trình Mô phỏng Bức điện SOAP Envelope & WSDL Operations
+            {isEn
+              ? 'SOAP XML Envelope & WSDL Operations Simulator'
+              : 'Trình Mô phỏng Bức điện SOAP Envelope & WSDL Operations'}
           </h3>
         </div>
         <div className="flex flex-wrap gap-1.5">
@@ -474,7 +516,11 @@ export function SoapPlayground() {
                   : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-amber-500/50'
               }`}
             >
-              {op === 'TriggerSoapFault' ? '⚡ Giả lập lỗi SOAP Fault' : op}
+              {op === 'TriggerSoapFault'
+                ? isEn
+                  ? '⚡ Trigger SOAP Fault'
+                  : '⚡ Giả lập lỗi SOAP Fault'
+                : op}
             </button>
           ))}
         </div>
@@ -529,22 +575,31 @@ export function SoapPlayground() {
         <div className="lg:col-span-6 space-y-3 rounded border border-slate-800 bg-slate-950 p-4">
           <div className="flex items-center justify-between">
             <span className="font-mono text-xs font-semibold text-amber-300">
-              SOAP XML Request (Có thể chỉnh sửa trực tiếp)
+              {isEn
+                ? 'SOAP XML Request (Editable Live)'
+                : 'SOAP XML Request (Có thể chỉnh sửa trực tiếp)'}
             </span>
-            <button
-              type="button"
-              onClick={() => setResult(executeSoapSimulation(operation, requestXml))}
-              className="inline-flex items-center gap-1.5 rounded bg-amber-500 px-3 py-1.5 font-mono text-xs font-bold text-slate-950 hover:bg-amber-400"
-            >
+            <span className="inline-flex items-center gap-1.5 rounded bg-amber-500 px-3 py-1 font-mono text-xs font-bold text-slate-950">
               <Play className="h-3.5 w-3.5" />
-              Thực thi SOAP Call
-            </button>
+              {isEn ? 'Live WSDL Execution' : 'Thực thi SOAP Call'}
+            </span>
           </div>
           <p className="text-[11px] text-slate-400">
-            Mẹo: Bạn có thể sửa giá trị trong thẻ{' '}
-            <code className="text-amber-300">&lt;bank:AccountId&gt;</code> thành{' '}
-            <code className="text-rose-300">INVALID-ACC</code> để tự kích hoạt lỗi{' '}
-            <code className="text-rose-300">&lt;soap:Fault&gt;</code>.
+            {isEn ? (
+              <>
+                Tip: Change the value inside{' '}
+                <code className="text-amber-300">&lt;bank:AccountId&gt;</code> to{' '}
+                <code className="text-rose-300">INVALID-ACC</code> to trigger a live{' '}
+                <code className="text-rose-300">&lt;soap:Fault&gt;</code>.
+              </>
+            ) : (
+              <>
+                Mẹo: Bạn có thể sửa giá trị trong thẻ{' '}
+                <code className="text-amber-300">&lt;bank:AccountId&gt;</code> thành{' '}
+                <code className="text-rose-300">INVALID-ACC</code> để tự kích hoạt lỗi{' '}
+                <code className="text-rose-300">&lt;soap:Fault&gt;</code>.
+              </>
+            )}
           </p>
           <textarea
             rows={13}
@@ -582,6 +637,9 @@ export function SoapPlayground() {
 // 3. GRAPHQL API INTERACTIVE PLAYGROUND (UNIVERSITY MANAGEMENT SYSTEM)
 // ============================================================================
 export function GraphqlPlayground() {
+  const { lang } = useAppPreferences();
+  const isEn = lang === 'en';
+
   const [selection, setSelection] = useState<GraphqlFieldSelection>({
     studentId: 'SV-101',
     includeFullName: true,
@@ -592,7 +650,7 @@ export function GraphqlPlayground() {
     includeGrades: false,
   });
 
-  const simResult = executeGraphqlSimulation(selection);
+  const simResult = executeGraphqlSimulation(selection, lang);
   const savedPercent = Math.max(
     0,
     Math.round(
@@ -617,11 +675,15 @@ export function GraphqlPlayground() {
             GRAPHQL QUERY & RESOLVER PLAYGROUND — UNIVERSITY MANAGEMENT SYSTEM
           </span>
           <h3 className="text-lg font-bold text-white">
-            Trình Xây dựng Truy vấn Đồ thị & So sánh Over-fetching với REST
+            {isEn
+              ? 'Interactive Graph Query Builder & REST Over-fetching Comparison'
+              : 'Trình Xây dựng Truy vấn Đồ thị & So sánh Over-fetching với REST'}
           </h3>
         </div>
         <div className="flex items-center gap-2">
-          <span className="font-mono text-xs text-slate-400">Chọn Sinh viên:</span>
+          <span className="font-mono text-xs text-slate-400">
+            {isEn ? 'Select Student:' : 'Chọn Sinh viên:'}
+          </span>
           {(['SV-101', 'SV-102'] as const).map((id) => (
             <button
               key={id}
@@ -642,7 +704,9 @@ export function GraphqlPlayground() {
       {/* Field Selector Checkboxes */}
       <div className="rounded border border-slate-800 bg-slate-950 p-4 space-y-3">
         <p className="font-mono text-xs font-semibold text-pink-300">
-          Bật/tắt các trường (Fields) trong Schema để xem GraphQL Query và Payload thay đổi tức thì:
+          {isEn
+            ? 'Toggle Schema Fields to watch the GraphQL Query, Active Resolvers, and JSON Payload adapt in real time:'
+            : 'Bật/tắt các trường (Fields) trong Schema để xem GraphQL Query và Payload thay đổi tức thì:'}
         </p>
         <div className="flex flex-wrap gap-2">
           {(
@@ -677,7 +741,9 @@ export function GraphqlPlayground() {
         <div className="lg:col-span-5 space-y-4 rounded border border-slate-800 bg-slate-950 p-4">
           <div>
             <p className="font-mono text-xs font-semibold text-pink-400 mb-2">
-              POST /graphql — Câu truy vấn được tạo:
+              {isEn
+                ? 'POST /graphql — Generated Query:'
+                : 'POST /graphql — Câu truy vấn được tạo:'}
             </p>
             <pre className="rounded border border-slate-800 bg-slate-900 p-3 font-mono text-xs text-pink-200 overflow-x-auto">
               <code>{simResult.generatedQuery}</code>
@@ -686,8 +752,9 @@ export function GraphqlPlayground() {
 
           <div className="border-t border-slate-800 pt-3 space-y-2">
             <p className="font-mono text-xs font-semibold text-sky-400">
-              Cây Resolver thực thi trên Server ({simResult.resolversTriggered.length}{' '}
-              resolvers):
+              {isEn
+                ? `Server Resolver Execution Tree (${simResult.resolversTriggered.length} resolvers):`
+                : `Cây Resolver thực thi trên Server (${simResult.resolversTriggered.length} resolvers):`}
             </p>
             <ul className="space-y-1.5">
               {simResult.resolversTriggered.map((res) => (
@@ -744,11 +811,14 @@ export function GraphqlPlayground() {
 // 4. gRPC API INTERACTIVE PLAYGROUND (MICROSERVICES & PROTOBUF BINARY)
 // ============================================================================
 export function GrpcPlayground() {
+  const { lang } = useAppPreferences();
+  const isEn = lang === 'en';
+
   const [pattern, setPattern] = useState<GrpcPatternType>('unary');
   const [orderId, setOrderId] = useState<string>('ORD-2026');
   const [amountVnd, setAmountVnd] = useState<number>(950000);
 
-  const sim = executeGrpcSimulation(pattern, orderId, amountVnd);
+  const sim = executeGrpcSimulation(pattern, orderId, amountVnd, lang);
 
   return (
     <div className="rounded-lg border border-emerald-500/40 bg-slate-925 p-5 space-y-5">
@@ -758,11 +828,15 @@ export function GrpcPlayground() {
             gRPC & PROTOCOL BUFFERS PLAYGROUND — MICROSERVICES COMMUNICATION
           </span>
           <h3 className="text-lg font-bold text-white">
-            Trình Mô phỏng 4 Mô hình RPC Streaming & Khung Nhị phân HTTP/2
+            {isEn
+              ? '4 RPC Streaming Patterns & HTTP/2 Binary Framing Simulator'
+              : 'Trình Mô phỏng 4 Mô hình RPC Streaming & Khung Nhị phân HTTP/2'}
           </h3>
         </div>
         <span className="rounded border border-amber-500/30 bg-amber-950/30 px-2.5 py-1 font-mono text-[11px] text-amber-300">
-          Mô phỏng tuần tự hóa Protobuf cục bộ (Conceptual Binary Wire)
+          {isEn
+            ? 'Local Protobuf Binary Wire Simulation'
+            : 'Mô phỏng tuần tự hóa Protobuf cục bộ (Conceptual Binary Wire)'}
         </span>
       </div>
 
@@ -827,7 +901,8 @@ export function GrpcPlayground() {
               Protobuf Binary: {sim.protobufBinaryBytes} bytes
             </span>
             <span className="text-slate-400">
-              Tương đương JSON: {sim.jsonEquivalentBytes} bytes
+              {isEn ? 'JSON Equivalent: ' : 'Tương đương JSON: '}
+              {sim.jsonEquivalentBytes} bytes
             </span>
           </div>
           <p className="font-mono text-[11px] text-sky-300">{sim.rpcSignature}</p>
@@ -837,7 +912,9 @@ export function GrpcPlayground() {
       {/* HTTP/2 Multiplexed Frames Stream Timeline */}
       <div className="space-y-3">
         <p className="font-mono text-xs font-semibold uppercase text-slate-300">
-          Luồng Khung tin HTTP/2 (HTTP/2 DATA & HEADERS Frames):
+          {isEn
+            ? 'HTTP/2 Multiplexed Frame Stream (DATA & HEADERS Frames):'
+            : 'Luồng Khung tin HTTP/2 (HTTP/2 DATA & HEADERS Frames):'}
         </p>
         <div className="space-y-2.5">
           {sim.frames.map((frame) => (
@@ -887,10 +964,13 @@ interface WsLogFrame {
 }
 
 export function WebsocketPlayground() {
+  const { lang } = useAppPreferences();
+  const isEn = lang === 'en';
+
   const [clientAConnected, setClientAConnected] = useState<boolean>(true);
   const [clientBConnected, setClientBConnected] = useState<boolean>(true);
-  const [inputA, setInputA] = useState<string>('Xin chào từ Client A!');
-  const [inputB, setInputB] = useState<string>('Client B đã nhận được tín hiệu!');
+  const [inputA, setInputA] = useState<string>('Hello from Client A!');
+  const [inputB, setInputB] = useState<string>('Client B received the signal!');
   const [frames, setFrames] = useState<WsLogFrame[]>([
     {
       id: 'init-1',
@@ -946,14 +1026,18 @@ export function WebsocketPlayground() {
     appendFrame(
       'Client A ✕ Server',
       '0x8 Close (1006 Abnormal)',
-      'Mất kết nối mạng đột ngột! Kích hoạt bộ đếm Exponential Backoff Reconnect...'
+      isEn
+        ? 'Network dropped! Triggering Exponential Backoff Reconnection...'
+        : 'Mất kết nối mạng đột ngột! Kích hoạt bộ đếm Exponential Backoff Reconnect...'
     );
     setTimeout(() => {
       setClientAConnected(true);
       appendFrame(
         'Client A ⇄ Server',
         'HTTP 101 Re-Handshake',
-        'Tự động kết nối lại thành công sau 1.2s!'
+        isEn
+          ? 'Auto-reconnected successfully after 1.2s!'
+          : 'Tự động kết nối lại thành công sau 1.2s!'
       );
     }, 900);
   };
@@ -966,7 +1050,9 @@ export function WebsocketPlayground() {
             WEBSOCKET FULL-DUPLEX PLAYGROUND — REAL-TIME CHAT & TELEMETRY
           </span>
           <h3 className="text-lg font-bold text-white">
-            Trình Mô phỏng Kết nối Bền vững Hai chiều: Client A ⇄ WebSocket Server ⇄ Client B
+            {isEn
+              ? 'Persistent Full-Duplex Tunnel: Client A ⇄ WebSocket Server ⇄ Client B'
+              : 'Trình Mô phỏng Kết nối Bền vững Hai chiều: Client A ⇄ WebSocket Server ⇄ Client B'}
           </h3>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -975,14 +1061,16 @@ export function WebsocketPlayground() {
             onClick={sendPingPong}
             className="rounded border border-violet-500/40 bg-violet-950/40 px-3 py-1.5 font-mono text-xs text-violet-200 hover:border-violet-400"
           >
-            Phát xung Heartbeat (Ping/Pong)
+            {isEn ? 'Send Heartbeat (Ping/Pong)' : 'Phát xung Heartbeat (Ping/Pong)'}
           </button>
           <button
             type="button"
             onClick={simulateDropAndReconnect}
             className="rounded border border-amber-500/40 bg-amber-950/30 px-3 py-1.5 font-mono text-xs text-amber-300 hover:border-amber-400"
           >
-            Giả lập Đứt mạng & Auto-Reconnect
+            {isEn
+              ? 'Simulate Drop & Auto-Reconnect'
+              : 'Giả lập Đứt mạng & Auto-Reconnect'}
           </button>
         </div>
       </div>
@@ -1003,7 +1091,13 @@ export function WebsocketPlayground() {
                 appendFrame(
                   'Client A',
                   next ? 'HTTP 101 Upgrade' : '0x8 Close (1000)',
-                  next ? 'Client A đã mở kết nối wss://' : 'Client A chủ động đóng kết nối'
+                  next
+                    ? isEn
+                      ? 'Client A opened wss:// socket'
+                      : 'Client A đã mở kết nối wss://'
+                    : isEn
+                    ? 'Client A closed connection'
+                    : 'Client A chủ động đóng kết nối'
                 );
               }}
               className={`inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-[11px] font-bold ${
@@ -1038,7 +1132,7 @@ export function WebsocketPlayground() {
               className="inline-flex items-center gap-1 rounded bg-sky-500 px-3 py-1.5 font-mono text-xs font-bold text-slate-950 disabled:opacity-40"
             >
               <Send className="h-3 w-3" />
-              Gửi
+              {isEn ? 'Send' : 'Gửi'}
             </button>
           </div>
         </div>
@@ -1049,8 +1143,8 @@ export function WebsocketPlayground() {
             WEBSOCKET HUB SERVER (wss://)
           </p>
           <p className="text-xs text-slate-300 my-2">
-            Kênh TCP đang mở: {(clientAConnected ? 1 : 0) + (clientBConnected ? 1 : 0)} / 2
-            Sockets
+            {isEn ? 'Active TCP Sockets: ' : 'Kênh TCP đang mở: '}
+            {(clientAConnected ? 1 : 0) + (clientBConnected ? 1 : 0)} / 2 Sockets
           </p>
           <button
             type="button"
@@ -1059,13 +1153,15 @@ export function WebsocketPlayground() {
                 'Server ───► All Connected Clients',
                 '0x1 Server Broadcast',
                 JSON.stringify({
-                  systemAlert: 'Hệ thống vừa cập nhật bảng giá thời gian thực!',
+                  systemAlert: isEn
+                    ? 'Live price ticker updated by Server!'
+                    : 'Hệ thống vừa cập nhật bảng giá thời gian thực!',
                 })
               )
             }
             className="rounded border border-violet-400 bg-violet-500/20 px-3 py-1.5 font-mono text-xs font-semibold text-violet-200 hover:bg-violet-500/30"
           >
-            Server Chủ động Push Thông báo
+            {isEn ? 'Server Push Broadcast' : 'Server Chủ động Push Thông báo'}
           </button>
         </div>
 
@@ -1083,7 +1179,13 @@ export function WebsocketPlayground() {
                 appendFrame(
                   'Client B',
                   next ? 'HTTP 101 Upgrade' : '0x8 Close (1000)',
-                  next ? 'Client B đã mở kết nối wss://' : 'Client B chủ động đóng kết nối'
+                  next
+                    ? isEn
+                      ? 'Client B opened wss:// socket'
+                      : 'Client B đã mở kết nối wss://'
+                    : isEn
+                    ? 'Client B closed connection'
+                    : 'Client B chủ động đóng kết nối'
                 );
               }}
               className={`inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-[11px] font-bold ${
@@ -1118,7 +1220,7 @@ export function WebsocketPlayground() {
               className="inline-flex items-center gap-1 rounded bg-emerald-500 px-3 py-1.5 font-mono text-xs font-bold text-slate-950 disabled:opacity-40"
             >
               <Send className="h-3 w-3" />
-              Gửi
+              {isEn ? 'Send' : 'Gửi'}
             </button>
           </div>
         </div>
@@ -1127,7 +1229,9 @@ export function WebsocketPlayground() {
       {/* Live WebSocket Frame Inspector Log */}
       <div className="rounded border border-slate-800 bg-slate-950 p-4 space-y-2">
         <p className="font-mono text-xs font-semibold uppercase text-slate-400">
-          Nhật ký Khung truyền WebSocket Thời gian thực (Live Frame Stream):
+          {isEn
+            ? 'Live WebSocket Frame Stream Inspector:'
+            : 'Nhật ký Khung truyền WebSocket Thời gian thực (Live Frame Stream):'}
         </p>
         <div className="space-y-1.5 max-h-56 overflow-y-auto">
           {frames.map((f) => (
@@ -1153,6 +1257,9 @@ export function WebsocketPlayground() {
 // 6. WEBHOOK INTERACTIVE PLAYGROUND (EVENT PRODUCER, HMAC & RETRIES)
 // ============================================================================
 export function WebhookPlayground() {
+  const { lang } = useAppPreferences();
+  const isEn = lang === 'en';
+
   const [eventType, setEventType] = useState<WebhookEventType>('payment.success');
   const [callbackUrl, setCallbackUrl] = useState<string>(
     'https://api.myshop.vn/api/webhooks/payment'
@@ -1160,16 +1267,19 @@ export function WebhookPlayground() {
   const [secretKey, setSecretKey] = useState<string>('whsec_live_9988776655');
   const [tamperSignature, setTamperSignature] = useState<boolean>(false);
   const [simulate500, setSimulate500] = useState<boolean>(false);
-  const [orderAmountVnd, setOrderAmountVnd] = useState<number>(1250000);
+  const [orderAmountVnd] = useState<number>(1250000);
 
-  const result = simulateWebhookDelivery({
-    eventType,
-    callbackUrl,
-    secretKey,
-    tamperSignature,
-    simulateReceiver500Error: simulate500,
-    orderAmountVnd,
-  });
+  const result = simulateWebhookDelivery(
+    {
+      eventType,
+      callbackUrl,
+      secretKey,
+      tamperSignature,
+      simulateReceiver500Error: simulate500,
+      orderAmountVnd,
+    },
+    lang
+  );
 
   return (
     <div className="rounded-lg border border-orange-500/40 bg-slate-925 p-5 space-y-5">
@@ -1179,7 +1289,9 @@ export function WebhookPlayground() {
             WEBHOOK EVENT CALLBACK PLAYGROUND — PAYMENT & ORDER EVENTS
           </span>
           <h3 className="text-lg font-bold text-white">
-            Trình Mô phỏng Reverse API: HTTP POST Delivery, Chữ ký HMAC & Exponential Backoff Retry
+            {isEn
+              ? 'Reverse API Simulator: HTTP POST Delivery, HMAC Verification & Exponential Backoff'
+              : 'Trình Mô phỏng Reverse API: HTTP POST Delivery, Chữ ký HMAC & Exponential Backoff Retry'}
           </h3>
         </div>
       </div>
@@ -1189,7 +1301,9 @@ export function WebhookPlayground() {
         <div className="lg:col-span-5 space-y-4 rounded border border-slate-800 bg-slate-950 p-4">
           <div>
             <label className="block font-mono text-[10px] uppercase text-slate-400 mb-1">
-              1. Chọn Sự kiện Phát sinh từ Cổng Thanh toán (Producer):
+              {isEn
+                ? '1. Select Event Triggered by Payment Provider (Producer):'
+                : '1. Chọn Sự kiện Phát sinh từ Cổng Thanh toán (Producer):'}
             </label>
             <div className="grid grid-cols-2 gap-1.5">
               {(
@@ -1218,7 +1332,9 @@ export function WebhookPlayground() {
 
           <div>
             <label className="block font-mono text-[10px] uppercase text-slate-400 mb-1">
-              2. Callback URL của Hệ thống Nhận (Consumer Endpoint):
+              {isEn
+                ? '2. Consumer Callback URL (Receiver Endpoint):'
+                : '2. Callback URL của Hệ thống Nhận (Consumer Endpoint):'}
             </label>
             <input
               type="text"
@@ -1230,7 +1346,9 @@ export function WebhookPlayground() {
 
           <div>
             <label className="block font-mono text-[10px] uppercase text-slate-400 mb-1">
-              3. Shared Webhook Secret (Dùng để ký HMAC-SHA256):
+              {isEn
+                ? '3. Shared Webhook Secret (For HMAC-SHA256 Signing):'
+                : '3. Shared Webhook Secret (Dùng để ký HMAC-SHA256):'}
             </label>
             <input
               type="text"
@@ -1250,7 +1368,9 @@ export function WebhookPlayground() {
                 className="rounded border-slate-700"
               />
               <span>
-                Giả lập Server nhận bị lỗi 500/503 (Xem cơ chế Tự động Retry 3 lần)
+                {isEn
+                  ? 'Simulate Receiver 500/503 Outage (Observe 3x Exponential Backoff Retries)'
+                  : 'Giả lập Server nhận bị lỗi 500/503 (Xem cơ chế Tự động Retry 3 lần)'}
               </span>
             </label>
             <label className="flex items-center gap-2 text-xs text-slate-200 cursor-pointer">
@@ -1261,7 +1381,9 @@ export function WebhookPlayground() {
                 className="rounded border-slate-700"
               />
               <span>
-                Giả lập Hacker giả mạo gói tin (Sai chữ ký HMAC → Bị chặn 401)
+                {isEn
+                  ? 'Simulate Attacker Payload Tampering (Invalid HMAC → Blocked 401)'
+                  : 'Giả lập Hacker giả mạo gói tin (Sai chữ ký HMAC → Bị chặn 401)'}
               </span>
             </label>
           </div>
@@ -1316,7 +1438,9 @@ export function WebhookPlayground() {
           {/* Delivery & Retry Timeline */}
           <div className="space-y-2 border-t border-slate-800 pt-3">
             <p className="font-mono text-xs font-semibold text-orange-400">
-              Nhật ký Chuyển phát & Chu trình Thử lại (Delivery & Retry Timeline):
+              {isEn
+                ? 'Delivery & Exponential Backoff Retry Timeline:'
+                : 'Nhật ký Chuyển phát & Chu trình Thử lại (Delivery & Retry Timeline):'}
             </p>
             {result.attempts.map((att) => (
               <div
@@ -1329,7 +1453,8 @@ export function WebhookPlayground() {
               >
                 <div className="flex items-center justify-between font-mono mb-1">
                   <span className="font-bold text-white">
-                    Lần thử #{att.attemptNumber} ({att.delayLabel})
+                    {isEn ? 'Attempt #' : 'Lần thử #'}
+                    {att.attemptNumber} ({att.delayLabel})
                   </span>
                   <span
                     className={
@@ -1355,6 +1480,9 @@ export function WebhookPlayground() {
 // 7. WEBRTC API INTERACTIVE PLAYGROUND (P2P SIGNALING, ICE/STUN/TURN & DATACHANNEL)
 // ============================================================================
 export function WebRtcPlayground() {
+  const { lang } = useAppPreferences();
+  const isEn = lang === 'en';
+
   const [natTopology, setNatTopology] =
     useState<WebRtcNatTopology>('cone-nat-stun');
   const [videoCodec, setVideoCodec] = useState<WebRtcVideoCodec>('VP9');
@@ -1375,13 +1503,16 @@ export function WebRtcPlayground() {
     },
   ]);
 
-  const session = simulateWebRtcSession({
-    natTopology,
-    videoCodec,
-    enableVideo,
-    enableAudio,
-    enableDataChannel,
-  });
+  const session = simulateWebRtcSession(
+    {
+      natTopology,
+      videoCodec,
+      enableVideo,
+      enableAudio,
+      enableDataChannel,
+    },
+    lang
+  );
 
   const sendDataChannelPacket = (fromPeer: 'Peer A' | 'Peer B') => {
     if (!enableDataChannel) return;
@@ -1407,7 +1538,9 @@ export function WebRtcPlayground() {
             WEBRTC PEER-TO-PEER PLAYGROUND — SIGNALING, ICE/STUN/TURN & DATACHANNEL
           </span>
           <h3 className="text-lg font-bold text-white">
-            Trình Mô phỏng Đàm phán SDP, Xuyên NAT (ICE/STUN/TURN) & Truyền tải P2P UDP
+            {isEn
+              ? 'SDP Negotiation, NAT Traversal (ICE/STUN/TURN) & P2P UDP Simulator'
+              : 'Trình Mô phỏng Đàm phán SDP, Xuyên NAT (ICE/STUN/TURN) & Truyền tải P2P UDP'}
           </h3>
         </div>
         <span
@@ -1427,25 +1560,35 @@ export function WebRtcPlayground() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 rounded border border-slate-800 bg-slate-950 p-4">
         <div className="lg:col-span-7 space-y-2">
           <p className="font-mono text-xs font-semibold text-cyan-300">
-            1. Chọn Địa hình Mạng & Tường lửa NAT (ICE / STUN / TURN Topology):
+            {isEn
+              ? '1. Select Network & NAT Firewall Topology (ICE / STUN / TURN):'
+              : '1. Chọn Địa hình Mạng & Tường lửa NAT (ICE / STUN / TURN Topology):'}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {(
               [
                 {
                   id: 'lan-host',
-                  title: 'Cùng mạng LAN (typ host)',
-                  sub: 'Kết nối IP nội bộ trực tiếp (4ms)',
+                  title: isEn ? 'Local LAN (typ host)' : 'Cùng mạng LAN (typ host)',
+                  sub: isEn
+                    ? 'Direct private IP link (4ms)'
+                    : 'Kết nối IP nội bộ trực tiếp (4ms)',
                 },
                 {
                   id: 'cone-nat-stun',
-                  title: 'Xuyên NAT qua STUN (typ srflx)',
+                  title: isEn
+                    ? 'STUN NAT Traversal (typ srflx)'
+                    : 'Xuyên NAT qua STUN (typ srflx)',
                   sub: 'UDP Hole Punching P2P (16ms)',
                 },
                 {
                   id: 'symmetric-nat-turn',
-                  title: 'Tường lửa Chặn P2P (typ relay)',
-                  sub: 'Chuyển tiếp qua TURN Server (48ms)',
+                  title: isEn
+                    ? 'Symmetric Firewall (typ relay)'
+                    : 'Tường lửa Chặn P2P (typ relay)',
+                  sub: isEn
+                    ? 'Relayed via TURN Server (48ms)'
+                    : 'Chuyển tiếp qua TURN Server (48ms)',
                 },
               ] as const
             ).map((item) => (
@@ -1470,7 +1613,9 @@ export function WebRtcPlayground() {
 
         <div className="lg:col-span-5 space-y-2">
           <p className="font-mono text-xs font-semibold text-cyan-300">
-            2. Cấu hình Kênh Truyền (Media Tracks & Codec):
+            {isEn
+              ? '2. Configure Active Media Tracks & Codec:'
+              : '2. Cấu hình Kênh Truyền (Media Tracks & Codec):'}
           </p>
           <div className="flex flex-wrap gap-2">
             <button
@@ -1535,7 +1680,9 @@ export function WebRtcPlayground() {
         <div className="lg:col-span-6 space-y-4 rounded border border-slate-800 bg-slate-950 p-4">
           <div>
             <p className="font-mono text-xs font-bold text-cyan-400 mb-1.5">
-              Bảng Thu thập Ứng viên Mạng (ICE Candidate Gathering Table):
+              {isEn
+                ? 'ICE Candidate Gathering Table:'
+                : 'Bảng Thu thập Ứng viên Mạng (ICE Candidate Gathering Table):'}
             </p>
             <div className="space-y-2">
               {session.iceCandidates.map((cand) => (
@@ -1571,7 +1718,9 @@ export function WebRtcPlayground() {
 
           <div>
             <p className="font-mono text-xs font-bold text-cyan-400 mb-1">
-              Bản mô tả phiên SDP Offer (Trao đổi qua WebSocket Signaling):
+              {isEn
+                ? 'SDP Offer Manifest (Exchanged over WebSocket Signaling):'
+                : 'Bản mô tả phiên SDP Offer (Trao đổi qua WebSocket Signaling):'}
             </p>
             <pre className="rounded border border-slate-800 bg-slate-900 p-3 font-mono text-[11px] text-cyan-200 overflow-x-auto max-h-44">
               <code>{session.sdpOfferText}</code>
@@ -1583,7 +1732,9 @@ export function WebRtcPlayground() {
         <div className="lg:col-span-6 space-y-4 rounded border border-slate-800 bg-slate-950 p-4">
           <div className="rounded border border-cyan-500/30 bg-cyan-950/20 p-3">
             <p className="font-mono text-[10px] uppercase text-cyan-400">
-              Đường truyền Vật lý Đang Hoạt động (Active Media/Data Tunnel):
+              {isEn
+                ? 'Active Physical Media/Data Tunnel:'
+                : 'Đường truyền Vật lý Đang Hoạt động (Active Media/Data Tunnel):'}
             </p>
             <p className="font-mono text-xs font-bold text-white mt-0.5">
               {session.activePathLabel}
@@ -1605,7 +1756,9 @@ export function WebRtcPlayground() {
           {/* Live RTCDataChannel P2P Tester */}
           <div className="border-t border-slate-800 pt-3 space-y-2">
             <p className="font-mono text-xs font-bold text-emerald-400">
-              Thử nghiệm Truyền Gói tin P2P qua RTCDataChannel (SCTP/UDP):
+              {isEn
+                ? 'Test P2P Packet Streaming over RTCDataChannel (SCTP/UDP):'
+                : 'Thử nghiệm Truyền Gói tin P2P qua RTCDataChannel (SCTP/UDP):'}
             </p>
             <div className="flex flex-wrap gap-2">
               <input

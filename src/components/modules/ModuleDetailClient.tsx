@@ -4,12 +4,10 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import {
   Cpu,
-  Layers,
   Code2,
   FlaskConical,
   CheckCircle2,
   XCircle,
-  AlertCircle,
   ArrowRight,
   ArrowLeft,
   HelpCircle,
@@ -17,16 +15,28 @@ import {
   Activity,
 } from 'lucide-react';
 import { LearningModule, QuizQuestion } from '@/types/api';
-import { TECH_CLASSIFICATIONS } from '@/config/site';
+import { getTechClassifications } from '@/config/site';
+import { getModuleById } from '@/data/modules';
+import { getQuestionsByModule } from '@/data/quizzes';
 import { DedicatedModulePlayground } from '@/components/playgrounds/DedicatedPlaygrounds';
+import { useAppPreferences } from '@/context/AppPreferencesContext';
 
 export function ModuleDetailClient({
-  moduleData,
-  moduleQuizzes,
+  moduleData: initialModuleData,
+  moduleQuizzes: initialQuizzes,
 }: {
   moduleData: LearningModule;
   moduleQuizzes: QuizQuestion[];
 }) {
+  const { lang } = useAppPreferences();
+  const isEn = lang === 'en';
+
+  const moduleData =
+    getModuleById(initialModuleData.id, lang) ?? initialModuleData;
+  const moduleQuizzes =
+    getQuestionsByModule(initialModuleData.id, lang) ?? initialQuizzes;
+  const techList = getTechClassifications(lang);
+
   const [selectedNodeId, setSelectedNodeId] = useState<string>(
     moduleData.architecture.nodes[0]?.id ?? ''
   );
@@ -42,8 +52,8 @@ export function ModuleDetailClient({
     moduleData.communicationFlow[selectedFlowStep] ??
     moduleData.communicationFlow[0]!;
 
-  const prevTech = TECH_CLASSIFICATIONS[moduleData.order - 2];
-  const nextTech = TECH_CLASSIFICATIONS[moduleData.order];
+  const prevTech = techList[moduleData.order - 2];
+  const nextTech = techList[moduleData.order];
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 pb-20">
@@ -51,9 +61,9 @@ export function ModuleDetailClient({
       <div className="border-b border-slate-800 bg-slate-925">
         <div className="mx-auto max-w-7xl px-4 py-2.5 sm:px-6 lg:px-8 flex items-center gap-2 overflow-x-auto">
           <span className="font-mono text-[10px] uppercase text-slate-400 shrink-0 mr-1">
-            7 Chuyên đề:
+            {isEn ? '7 Modules:' : '7 Chuyên đề:'}
           </span>
-          {TECH_CLASSIFICATIONS.map((tech, idx) => {
+          {techList.map((tech, idx) => {
             const isCurrent = tech.id === moduleData.id;
             return (
               <Link
@@ -82,7 +92,8 @@ export function ModuleDetailClient({
             <span
               className={`rounded border px-3 py-1 font-mono text-xs font-bold ${moduleData.badgeClass}`}
             >
-              Bản chất kỹ thuật: {moduleData.technicalNature}
+              {isEn ? 'Technical Nature: ' : 'Bản chất kỹ thuật: '}
+              {moduleData.technicalNature}
             </span>
           </div>
 
@@ -98,7 +109,7 @@ export function ModuleDetailClient({
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4 pt-2">
             <div className="rounded border border-slate-800 bg-slate-925/90 p-4 space-y-1.5">
               <p className="font-mono text-[10px] uppercase text-sky-400">
-                1. Định nghĩa & Bản chất
+                {isEn ? '1. Definition & Nature' : '1. Định nghĩa & Bản chất'}
               </p>
               <p className="text-xs text-slate-200 leading-relaxed">
                 {moduleData.introduction.hookVi}
@@ -106,7 +117,7 @@ export function ModuleDetailClient({
             </div>
             <div className="rounded border border-slate-800 bg-slate-925/90 p-4 space-y-1.5">
               <p className="font-mono text-[10px] uppercase text-amber-400">
-                2. Bài toán Giải quyết
+                {isEn ? '2. Engineering Problem Solved' : '2. Bài toán Giải quyết'}
               </p>
               <p className="text-xs text-slate-200 leading-relaxed">
                 {moduleData.introduction.problemSolvedVi}
@@ -114,7 +125,7 @@ export function ModuleDetailClient({
             </div>
             <div className="rounded border border-slate-800 bg-slate-925/90 p-4 space-y-1.5">
               <p className="font-mono text-[10px] uppercase text-violet-400">
-                3. Bối cảnh Ra đời
+                {isEn ? '3. Historical Context' : '3. Bối cảnh Ra đời'}
               </p>
               <p className="text-xs text-slate-200 leading-relaxed">
                 {moduleData.introduction.historicalContextVi}
@@ -122,7 +133,7 @@ export function ModuleDetailClient({
             </div>
             <div className="rounded border border-emerald-500/30 bg-emerald-950/20 p-4 space-y-1.5">
               <p className="font-mono text-[10px] uppercase text-emerald-400">
-                4. Cộng sinh Kiến trúc (Coexistence)
+                {isEn ? '4. Architectural Coexistence' : '4. Cộng sinh Kiến trúc (Coexistence)'}
               </p>
               <p className="text-xs text-slate-200 leading-relaxed">
                 {moduleData.introduction.coexistenceNoteVi}
@@ -140,7 +151,9 @@ export function ModuleDetailClient({
               02. CORE CONCEPTS
             </p>
             <h2 className="text-2xl font-bold text-white mt-1">
-              Các Khái niệm Kỹ thuật Cốt lõi của {moduleData.name}
+              {isEn
+                ? `Core Engineering Concepts of ${moduleData.name}`
+                : `Các Khái niệm Kỹ thuật Cốt lõi của ${moduleData.name}`}
             </h2>
           </div>
 
@@ -160,7 +173,9 @@ export function ModuleDetailClient({
                   {concept.summaryVi}
                 </p>
                 <div className="rounded border border-slate-800/90 bg-slate-950 p-3 text-xs text-slate-300 leading-relaxed">
-                  <span className="font-semibold text-sky-300">Cơ chế sâu: </span>
+                  <span className="font-semibold text-sky-300">
+                    {isEn ? 'Deep Dive: ' : 'Cơ chế sâu: '}
+                  </span>
                   {concept.deepDiveVi}
                 </div>
                 {concept.codeSnippet && (
@@ -183,7 +198,9 @@ export function ModuleDetailClient({
                 <span>03. ARCHITECTURE TOPOLOGY</span>
               </div>
               <h2 className="text-xl font-bold text-white mt-1">
-                Sơ đồ Kiến trúc Thành phần {moduleData.name}
+                {isEn
+                  ? `${moduleData.name} Component Architecture`
+                  : `Sơ đồ Kiến trúc Thành phần ${moduleData.name}`}
               </h2>
               <p className="text-xs text-slate-300 mt-1">
                 {moduleData.architecture.summaryVi}
@@ -238,7 +255,8 @@ export function ModuleDetailClient({
             <div className="rounded border border-sky-500/30 bg-slate-950 p-4 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="font-mono text-xs font-bold text-white">
-                  Đang kiểm tra thành phần: {activeNode.label}
+                  {isEn ? 'Inspecting Component: ' : 'Đang kiểm tra thành phần: '}
+                  {activeNode.label}
                 </span>
                 <span className="rounded bg-slate-800 px-2 py-0.5 font-mono text-[10px] text-sky-300">
                   {activeNode.techDetails}
@@ -258,7 +276,7 @@ export function ModuleDetailClient({
                 <span>04. HOW IT WORKS INTERNALLY</span>
               </div>
               <h2 className="text-xl font-bold text-white mt-1">
-                Cơ chế Vận hành Nội bộ
+                {isEn ? 'Internal Execution Mechanics' : 'Cơ chế Vận hành Nội bộ'}
               </h2>
             </div>
 
@@ -287,7 +305,9 @@ export function ModuleDetailClient({
               <span>05. STEP-BY-STEP COMMUNICATION FLOW</span>
             </div>
             <h2 className="text-2xl font-bold text-white mt-1">
-              Luồng Giao tiếp & Biến đổi Gói tin qua Từng Chặng
+              {isEn
+                ? 'Packet Transformation & Step-by-Step Communication Flow'
+                : 'Luồng Giao tiếp & Biến đổi Gói tin qua Từng Chặng'}
             </h2>
           </div>
 
@@ -317,7 +337,8 @@ export function ModuleDetailClient({
           <div className="rounded border border-slate-800 bg-slate-950 p-4 grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
             <div className="lg:col-span-5 space-y-1.5">
               <span className="font-mono text-xs font-bold text-sky-400">
-                Bước {activeFlow.step}: {activeFlow.actor} ({activeFlow.actionEn})
+                {isEn ? 'Step ' : 'Bước '}
+                {activeFlow.step}: {activeFlow.actor} ({activeFlow.actionEn})
               </span>
               <p className="text-xs text-slate-200 leading-relaxed">
                 {activeFlow.descriptionVi}
@@ -340,14 +361,18 @@ export function ModuleDetailClient({
                 <span>07. INTERACTIVE SIMULATION PLAYGROUND</span>
               </div>
               <h2 className="text-2xl font-bold text-white mt-1">
-                Phòng Thí nghiệm Tương tác Chuyên biệt cho {moduleData.name}
+                {isEn
+                  ? `Dedicated Interactive Playground for ${moduleData.name}`
+                  : `Phòng Thí nghiệm Tương tác Chuyên biệt cho ${moduleData.name}`}
               </h2>
             </div>
             <Link
               href="/lab"
               className="font-mono text-xs text-sky-400 hover:text-sky-300"
             >
-              Mở trong Universal API Laboratory →
+              {isEn
+                ? 'Open in Universal API Laboratory →'
+                : 'Mở trong Universal API Laboratory →'}
             </Link>
           </div>
 
@@ -389,7 +414,7 @@ export function ModuleDetailClient({
               </div>
               <div className="lg:col-span-4 space-y-3">
                 <p className="font-mono text-xs font-bold uppercase text-sky-400">
-                  Chú giải Kỹ thuật:
+                  {isEn ? 'Technical Annotations:' : 'Chú giải Kỹ thuật:'}
                 </p>
                 <p className="text-xs text-slate-300 leading-relaxed">
                   {ex.descriptionVi}
@@ -418,7 +443,9 @@ export function ModuleDetailClient({
               08. REAL-WORLD USE CASES & WHEN NOT TO USE
             </p>
             <h2 className="text-xl font-bold text-white">
-              Ứng dụng Thực tế & Khi nào KHÔNG nên dùng {moduleData.name}
+              {isEn
+                ? `Production Use Cases & When NOT to Use ${moduleData.name}`
+                : `Ứng dụng Thực tế & Khi nào KHÔNG nên dùng ${moduleData.name}`}
             </h2>
 
             <div className="space-y-3">
@@ -435,7 +462,8 @@ export function ModuleDetailClient({
                   </div>
                   <p className="text-xs text-slate-300">{uc.descriptionVi}</p>
                   <p className="text-xs text-emerald-300">
-                    <strong>Lý do phù hợp:</strong> {uc.whyItFitsVi}
+                    <strong>{isEn ? 'Why it fits:' : 'Lý do phù hợp:'}</strong>{' '}
+                    {uc.whyItFitsVi}
                   </p>
                 </div>
               ))}
@@ -443,7 +471,9 @@ export function ModuleDetailClient({
 
             <div className="rounded border border-amber-500/30 bg-amber-950/15 p-4 space-y-2">
               <p className="font-mono text-xs font-bold text-amber-400">
-                Khi nào KHÔNG nên chọn {moduleData.name}?
+                {isEn
+                  ? `When NOT to choose ${moduleData.name}:`
+                  : `Khi nào KHÔNG nên chọn ${moduleData.name}?`}
               </p>
               <ul className="space-y-1.5 text-xs text-slate-200 list-disc pl-4">
                 {moduleData.WhenNotToUseVi.map((w) => (
@@ -459,12 +489,14 @@ export function ModuleDetailClient({
               09. ADVANTAGES & LIMITATIONS (TRADE-OFFS)
             </p>
             <h2 className="text-xl font-bold text-white">
-              Ưu điểm Kỹ thuật & Những Giới hạn Đánh đổi
+              {isEn
+                ? 'Technical Strengths & Architectural Trade-Offs'
+                : 'Ưu điểm Kỹ thuật & Những Giới hạn Đánh đổi'}
             </h2>
 
             <div className="rounded border border-emerald-500/30 bg-emerald-950/15 p-4 space-y-2">
               <p className="font-mono text-xs font-bold text-emerald-400">
-                Ưu điểm nổi bật (Advantages)
+                {isEn ? 'Key Advantages' : 'Ưu điểm nổi bật (Advantages)'}
               </p>
               <ul className="space-y-2 text-xs text-slate-200">
                 {moduleData.advantages.map((adv) => (
@@ -478,7 +510,7 @@ export function ModuleDetailClient({
 
             <div className="rounded border border-rose-500/30 bg-rose-950/15 p-4 space-y-2">
               <p className="font-mono text-xs font-bold text-rose-400">
-                Hạn chế & Thách thức (Limitations)
+                {isEn ? 'Limitations & Challenges' : 'Hạn chế & Thách thức (Limitations)'}
               </p>
               <ul className="space-y-2 text-xs text-slate-200">
                 {moduleData.limitations.map((lim) => (
@@ -500,7 +532,9 @@ export function ModuleDetailClient({
               10. COMPARISON WITH RELATED TECHNOLOGIES
             </p>
             <h2 className="text-xl font-bold text-white">
-              Đối chiếu với Công nghệ Liên quan
+              {isEn
+                ? 'Comparison with Related Technologies'
+                : 'Đối chiếu với Công nghệ Liên quan'}
             </h2>
             <div className="space-y-3">
               {moduleData.relatedComparisons.map((cmp) => (
@@ -517,13 +551,17 @@ export function ModuleDetailClient({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                     <div className="rounded border border-slate-800 bg-slate-900 p-2.5">
                       <span className="font-mono text-[10px] text-emerald-400 block">
-                        Chọn {moduleData.name} khi:
+                        {isEn
+                          ? `Choose ${moduleData.name} when:`
+                          : `Chọn ${moduleData.name} khi:`}
                       </span>
                       <span className="text-slate-300">{cmp.whenToChooseThisVi}</span>
                     </div>
                     <div className="rounded border border-slate-800 bg-slate-900 p-2.5">
                       <span className="font-mono text-[10px] text-amber-400 block">
-                        Chọn {cmp.comparedWith} khi:
+                        {isEn
+                          ? `Choose ${cmp.comparedWith} when:`
+                          : `Chọn ${cmp.comparedWith} khi:`}
                       </span>
                       <span className="text-slate-300">{cmp.whenToChooseOtherVi}</span>
                     </div>
@@ -539,7 +577,9 @@ export function ModuleDetailClient({
               11. COMMON MISCONCEPTIONS
             </p>
             <h2 className="text-xl font-bold text-white">
-              Những Hiểu lầm Phổ biến Cần Tránh
+              {isEn
+                ? 'Common Technical Misconceptions to Avoid'
+                : 'Những Hiểu lầm Phổ biến Cần Tránh'}
             </h2>
             <div className="space-y-3">
               {moduleData.misconceptions.map((m) => (
@@ -548,13 +588,16 @@ export function ModuleDetailClient({
                   className="rounded border border-slate-800 bg-slate-950 p-4 space-y-2 text-xs"
                 >
                   <p className="font-semibold text-rose-300">
-                    ❌ Hiểu lầm: {m.mythVi}
+                    ❌ {isEn ? 'Myth: ' : 'Hiểu lầm: '}
+                    {m.mythVi}
                   </p>
                   <p className="text-emerald-300 leading-relaxed">
-                    ✅ Sự thật kỹ thuật: {m.realityVi}
+                    ✅ {isEn ? 'Technical Reality: ' : 'Sự thật kỹ thuật: '}
+                    {m.realityVi}
                   </p>
                   <p className="text-slate-400 font-mono text-[11px]">
-                    Bằng chứng: {m.technicalProofVi}
+                    {isEn ? 'Proof: ' : 'Bằng chứng: '}
+                    {m.technicalProofVi}
                   </p>
                 </div>
               ))}
@@ -571,14 +614,18 @@ export function ModuleDetailClient({
                 <span>12. KNOWLEDGE CHECK</span>
               </div>
               <h2 className="text-2xl font-bold text-white mt-1">
-                Kiểm tra Nhanh Kiến thức Chuyên đề {moduleData.name}
+                {isEn
+                  ? `${moduleData.name} Quick Knowledge Check`
+                  : `Kiểm tra Nhanh Kiến thức Chuyên đề ${moduleData.name}`}
               </h2>
             </div>
             <Link
               href="/assessment"
               className="font-mono text-xs text-sky-400 hover:text-sky-300"
             >
-              Làm bài đánh giá tổng hợp toàn khóa →
+              {isEn
+                ? 'Take Full Platform Assessment →'
+                : 'Làm bài đánh giá tổng hợp toàn khóa →'}
             </Link>
           </div>
 
@@ -594,7 +641,7 @@ export function ModuleDetailClient({
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-xs font-bold text-sky-400">
-                      Câu hỏi 0{qIdx + 1} ({q.type})
+                      {isEn ? 'Question ' : 'Câu hỏi '}0{qIdx + 1} ({q.type})
                     </span>
                   </div>
                   <p className="text-sm font-semibold text-white leading-relaxed">
@@ -649,7 +696,11 @@ export function ModuleDetailClient({
                     >
                       <p className="font-bold">
                         {chosenOpt.isCorrect
-                          ? '✓ Chính xác!'
+                          ? isEn
+                            ? '✓ Correct!'
+                            : '✓ Chính xác!'
+                          : isEn
+                          ? '✕ Not quite right.'
                           : '✕ Chưa chính xác.'}
                       </p>
                       <p className="text-slate-200 leading-relaxed">
@@ -671,7 +722,9 @@ export function ModuleDetailClient({
               className="inline-flex items-center gap-2 rounded border border-slate-700 bg-slate-900 px-4 py-2.5 text-xs font-semibold text-slate-200 hover:border-sky-400"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span>Chuyên đề trước: {prevTech.name}</span>
+              <span>
+                {isEn ? `Previous Module: ${prevTech.name}` : `Chuyên đề trước: ${prevTech.name}`}
+              </span>
             </Link>
           ) : (
             <Link
@@ -679,7 +732,7 @@ export function ModuleDetailClient({
               className="inline-flex items-center gap-2 rounded border border-slate-700 bg-slate-900 px-4 py-2.5 text-xs font-semibold text-slate-200 hover:border-sky-400"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span>Quay lại: Nền tảng API</span>
+              <span>{isEn ? 'Back to: API Fundamentals' : 'Quay lại: Nền tảng API'}</span>
             </Link>
           )}
 
@@ -688,7 +741,9 @@ export function ModuleDetailClient({
               href={nextTech.href}
               className="inline-flex items-center gap-2 rounded bg-sky-500 px-5 py-2.5 text-xs font-bold text-slate-950 hover:bg-sky-400"
             >
-              <span>Chuyên đề tiếp theo: {nextTech.name}</span>
+              <span>
+                {isEn ? `Next Module: ${nextTech.name}` : `Chuyên đề tiếp theo: ${nextTech.name}`}
+              </span>
               <ArrowRight className="h-4 w-4" />
             </Link>
           ) : (
@@ -696,7 +751,11 @@ export function ModuleDetailClient({
               href="/lab"
               className="inline-flex items-center gap-2 rounded bg-sky-500 px-5 py-2.5 text-xs font-bold text-slate-950 hover:bg-sky-400"
             >
-              <span>Tiếp tục tới: Interactive API Laboratory</span>
+              <span>
+                {isEn
+                  ? 'Continue to: Interactive API Laboratory'
+                  : 'Tiếp tục tới: Interactive API Laboratory'}
+              </span>
               <ArrowRight className="h-4 w-4" />
             </Link>
           )}

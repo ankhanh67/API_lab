@@ -1,29 +1,31 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
 import {
   Award,
   RotateCcw,
   CheckCircle2,
   XCircle,
-  BookOpen,
-  ArrowRight,
-  HelpCircle,
 } from 'lucide-react';
-import { QUIZ_QUESTIONS } from '@/data/quizzes';
-import { TECH_CLASSIFICATIONS } from '@/config/site';
+import { getAssessmentQuizzes } from '@/data/quizzes';
+import { getTechClassifications } from '@/config/site';
 import { ApiTechnologyId, QuizQuestionType } from '@/types/api';
+import { useAppPreferences } from '@/context/AppPreferencesContext';
 
 type ModuleFilter = 'all' | ApiTechnologyId | 'comprehensive';
 type TypeFilter = 'all' | QuizQuestionType;
 
 export default function KnowledgeAssessmentPage() {
+  const { lang } = useAppPreferences();
+  const isEn = lang === 'en';
+  const quizQuestions = getAssessmentQuizzes(lang);
+  const techList = getTechClassifications(lang);
+
   const [moduleFilter, setModuleFilter] = useState<ModuleFilter>('all');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [answers, setAnswers] = useState<Record<string, string>>({});
 
-  const filteredQuestions = QUIZ_QUESTIONS.filter((q) => {
+  const filteredQuestions = quizQuestions.filter((q) => {
     const matchModule =
       moduleFilter === 'all' ? true : q.moduleId === moduleFilter;
     const matchType = typeFilter === 'all' ? true : q.type === typeFilter;
@@ -56,13 +58,14 @@ export default function KnowledgeAssessmentPage() {
             <span>SECTION 8: KNOWLEDGE ASSESSMENT</span>
           </div>
           <h1 className="text-3xl font-extrabold text-white sm:text-4xl">
-            Hệ thống Đánh giá Năng lực Kỹ thuật API (Interactive Quiz System)
+            {isEn
+              ? 'API Engineering Competency & Knowledge Assessment'
+              : 'Hệ thống Đánh giá Năng lực Kỹ thuật API (Interactive Quiz System)'}
           </h1>
           <p className="max-w-3xl text-sm text-slate-300 leading-relaxed">
-            Kiểm tra toàn diện kiến thức qua 3 cấp độ: Khái niệm & Thuật ngữ (Type 1:
-            Multiple Choice), Cơ chế Truyền thông Kỹ thuật (Type 2: Technical
-            Understanding) và Ra quyết định Chọn công nghệ cho Kịch bản Thực tế (Type 3:
-            Scenario-Based Questions).
+            {isEn
+              ? 'Evaluate your mastery across 3 engineering tiers: Conceptual & Terminology (Type 1: Multiple Choice), Protocol & Wire Mechanics (Type 2: Technical Understanding), and Real-World Architectural Decision-Making (Type 3: Scenario-Based).'
+              : 'Kiểm tra toàn diện kiến thức qua 3 cấp độ: Khái niệm & Thuật ngữ (Type 1: Multiple Choice), Cơ chế Truyền thông Kỹ thuật (Type 2: Technical Understanding) và Ra quyết định Chọn công nghệ cho Kịch bản Thực tế (Type 3: Scenario-Based Questions).'}
           </p>
         </div>
       </section>
@@ -74,15 +77,16 @@ export default function KnowledgeAssessmentPage() {
             <div className="flex flex-wrap items-center gap-6">
               <div>
                 <p className="font-mono text-[10px] uppercase text-slate-400">
-                  Tiến độ làm bài
+                  {isEn ? 'Progress' : 'Tiến độ làm bài'}
                 </p>
                 <p className="font-mono text-xl font-bold text-white">
-                  {answeredCount} / {filteredQuestions.length} câu
+                  {answeredCount} / {filteredQuestions.length}{' '}
+                  {isEn ? 'questions' : 'câu'}
                 </p>
               </div>
               <div>
                 <p className="font-mono text-[10px] uppercase text-slate-400">
-                  Số câu đúng
+                  {isEn ? 'Correct Answers' : 'Số câu đúng'}
                 </p>
                 <p className="font-mono text-xl font-bold text-emerald-400">
                   {correctCount} ({scorePercent}%)
@@ -96,7 +100,7 @@ export default function KnowledgeAssessmentPage() {
               className="inline-flex items-center gap-1.5 rounded border border-slate-700 bg-slate-900 px-3.5 py-2 font-mono text-xs text-slate-200 hover:border-sky-400"
             >
               <RotateCcw className="h-3.5 w-3.5" />
-              Làm lại Bài đánh giá
+              {isEn ? 'Reset Assessment' : 'Làm lại Bài đánh giá'}
             </button>
           </div>
 
@@ -104,7 +108,7 @@ export default function KnowledgeAssessmentPage() {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
             <div className="lg:col-span-7 space-y-1.5">
               <p className="font-mono text-[11px] uppercase text-slate-400">
-                Lọc theo Chuyên đề:
+                {isEn ? 'Filter by Module:' : 'Lọc theo Chuyên đề:'}
               </p>
               <div className="flex flex-wrap gap-1.5">
                 <button
@@ -116,9 +120,11 @@ export default function KnowledgeAssessmentPage() {
                       : 'border-slate-800 bg-slate-900 text-slate-300'
                   }`}
                 >
-                  Tổng hợp Toàn khóa ({QUIZ_QUESTIONS.length})
+                  {isEn
+                    ? `All Modules (${quizQuestions.length})`
+                    : `Tổng hợp Toàn khóa (${quizQuestions.length})`}
                 </button>
-                {TECH_CLASSIFICATIONS.map((tech) => (
+                {techList.map((tech) => (
                   <button
                     key={tech.id}
                     type="button"
@@ -137,18 +143,31 @@ export default function KnowledgeAssessmentPage() {
 
             <div className="lg:col-span-5 space-y-1.5">
               <p className="font-mono text-[11px] uppercase text-slate-400">
-                Lọc theo Dạng câu hỏi:
+                {isEn ? 'Filter by Question Tier:' : 'Lọc theo Dạng câu hỏi:'}
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {(
                   [
-                    { id: 'all', label: 'Tất cả 3 Dạng' },
-                    { id: 'multiple-choice', label: 'Type 1: Khái niệm' },
+                    {
+                      id: 'all',
+                      label: isEn ? 'All 3 Tiers' : 'Tất cả 3 Dạng',
+                    },
+                    {
+                      id: 'multiple-choice',
+                      label: isEn ? 'Type 1: Concepts' : 'Type 1: Khái niệm',
+                    },
                     {
                       id: 'technical-understanding',
-                      label: 'Type 2: Cơ chế Kỹ thuật',
+                      label: isEn
+                        ? 'Type 2: Wire Mechanics'
+                        : 'Type 2: Cơ chế Kỹ thuật',
                     },
-                    { id: 'scenario-based', label: 'Type 3: Tình huống Thực tế' },
+                    {
+                      id: 'scenario-based',
+                      label: isEn
+                        ? 'Type 3: Real-World Scenarios'
+                        : 'Type 3: Tình huống Thực tế',
+                    },
                   ] as { id: TypeFilter; label: string }[]
                 ).map((t) => (
                   <button
@@ -177,9 +196,15 @@ export default function KnowledgeAssessmentPage() {
 
             const typeBadgeLabel =
               q.type === 'multiple-choice'
-                ? 'Type 1: Multiple Choice (Khái niệm)'
+                ? isEn
+                  ? 'Type 1: Multiple Choice (Conceptual)'
+                  : 'Type 1: Multiple Choice (Khái niệm)'
                 : q.type === 'technical-understanding'
-                ? 'Type 2: Technical Understanding (Cơ chế)'
+                ? isEn
+                  ? 'Type 2: Technical Understanding (Mechanics)'
+                  : 'Type 2: Technical Understanding (Cơ chế)'
+                : isEn
+                ? 'Type 3: Scenario-Based (Architectural Decision)'
                 : 'Type 3: Scenario-Based (Tình huống Kiến trúc)';
 
             return (
@@ -190,10 +215,11 @@ export default function KnowledgeAssessmentPage() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <span className="rounded bg-sky-500/20 px-2.5 py-0.5 font-mono text-xs font-bold text-sky-300">
-                      CÂU {idx + 1}
+                      {isEn ? `QUESTION ${idx + 1}` : `CÂU ${idx + 1}`}
                     </span>
                     <span className="rounded border border-slate-700 bg-slate-900 px-2.5 py-0.5 font-mono text-[11px] uppercase text-slate-300">
-                      Chủ đề: {q.moduleId}
+                      {isEn ? 'Topic: ' : 'Chủ đề: '}
+                      {q.moduleId}
                     </span>
                   </div>
                   <span className="font-mono text-xs text-amber-300">
@@ -253,20 +279,27 @@ export default function KnowledgeAssessmentPage() {
                     <div className="flex items-center gap-2 font-bold">
                       {chosenOpt.isCorrect ? (
                         <span className="text-emerald-300 flex items-center gap-1.5">
-                          <CheckCircle2 className="h-4 w-4" /> Chính xác!
+                          <CheckCircle2 className="h-4 w-4" />{' '}
+                          {isEn ? 'Correct!' : 'Chính xác!'}
                         </span>
                       ) : (
                         <span className="text-rose-300 flex items-center gap-1.5">
-                          <XCircle className="h-4 w-4" /> Chưa chính xác — Hãy xem
-                          giải thích kỹ thuật bên dưới:
+                          <XCircle className="h-4 w-4" />{' '}
+                          {isEn
+                            ? 'Not quite right — Review the technical explanation below:'
+                            : 'Chưa chính xác — Hãy xem giải thích kỹ thuật bên dưới:'}
                         </span>
                       )}
                     </div>
                     <p className="text-slate-200 leading-relaxed">
-                      <strong>Giải thích chi tiết:</strong> {q.explanationVi}
+                      <strong>
+                        {isEn ? 'Technical Explanation:' : 'Giải thích chi tiết:'}
+                      </strong>{' '}
+                      {q.explanationVi}
                     </p>
                     <p className="text-sky-300 font-mono text-[11px]">
-                      💡 Khuyến nghị học tập: {q.recommendationVi}
+                      💡 {isEn ? 'Study Recommendation: ' : 'Khuyến nghị học tập: '}
+                      {q.recommendationVi}
                     </p>
                   </div>
                 )}

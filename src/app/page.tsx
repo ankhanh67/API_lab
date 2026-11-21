@@ -8,16 +8,14 @@ import {
   FlaskConical,
   BookOpen,
   Layers,
-  GitCompare,
   Award,
   Activity,
-  Terminal,
-  CheckCircle2,
   Play,
   Network,
 } from 'lucide-react';
-import { SITE_CONFIG, TECH_CLASSIFICATIONS } from '@/config/site';
+import { SITE_CONFIG, getTechClassifications, Language } from '@/config/site';
 import { ApiTechnologyId } from '@/types/api';
+import { useAppPreferences } from '@/context/AppPreferencesContext';
 
 type HeroSimMode = 'request-response' | 'bidirectional' | 'event-webhook' | 'binary-rpc';
 
@@ -30,78 +28,223 @@ interface HeroSimPreset {
   targetLabel: string;
   packetForward: string;
   packetReturn: string;
-  explanationVi: string;
+  explanation: string;
 }
 
-const HERO_SIM_PRESETS: HeroSimPreset[] = [
-  {
-    id: 'request-response',
-    label: 'Đồng bộ Request / Response',
-    techBadge: 'REST / GraphQL / SOAP',
-    sourceLabel: 'Client Application',
-    gatewayLabel: 'HTTP / TLS Transport',
-    targetLabel: 'API Server & Database',
-    packetForward: 'GET /api/products/101 (JSON / XML / GraphQL Query)',
-    packetReturn: '200 OK → {"id": 101, "name": "Distributed Systems", "stock": 42}',
-    explanationVi:
-      'Client chủ động khởi tạo yêu cầu và chờ phản hồi. Mỗi chu kỳ Request/Response là một giao dịch độc lập (Stateless).',
-  },
-  {
-    id: 'bidirectional',
-    label: 'Kết nối Bền vững Hai chiều',
-    techBadge: 'WebSocket (Full-Duplex)',
-    sourceLabel: 'Client A & Client B',
-    gatewayLabel: 'Persistent TCP Tunnel (ws://)',
-    targetLabel: 'Realtime Event Hub',
-    packetForward: 'Frame↗: {"event":"chat.msg","text":"Xin chào!"}',
-    packetReturn: 'Frame↙: {"event":"broadcast","from":"user_B","latency":"4ms"}',
-    explanationVi:
-      'Sau bước bắt tay HTTP 101 Switching Protocols, kênh TCP giữ mở liên tục. Cả Client và Server đều có thể đẩy khung tin (Frame) bất kỳ lúc nào mà không cần mở lại kết nối.',
-  },
-  {
-    id: 'event-webhook',
-    label: 'Hướng sự kiện Đảo ngược (Push)',
-    techBadge: 'Webhook Callback',
-    sourceLabel: 'Payment Provider (Producer)',
-    gatewayLabel: 'Signed HTTP POST + HMAC',
-    targetLabel: 'Merchant Webhook Endpoint',
-    packetForward: 'POST /webhooks/payment → {"event":"payment.success","orderId":"ORD-99"}',
-    packetReturn: '200 OK → {"acknowledged":true} (Tránh kích hoạt Retry)',
-    explanationVi:
-      'Thay vì hệ thống của bạn phải hỏi liên tục (Polling), nhà cung cấp dịch vụ tự động bắn HTTP POST sang Callback URL ngay khi sự kiện phát sinh.',
-  },
-  {
-    id: 'binary-rpc',
-    label: 'Gọi thủ tục Nhị phân Nội bộ',
-    techBadge: 'gRPC + Protocol Buffers',
-    sourceLabel: 'Order Microservice (Stub)',
-    gatewayLabel: 'HTTP/2 Multiplexed Stream',
-    targetLabel: 'Inventory Microservice',
-    packetForward: 'Binary Protobuf: ReserveStockRequest [0x08 0x65 0x10 0x02]',
-    packetReturn: 'Binary Protobuf: ReserveStockResponse [0x08 0x01] (1.8ms)',
-    explanationVi:
-      'Dịch vụ gọi hàm từ xa giống như gọi hàm cục bộ. Dữ liệu được nén thành chuỗi byte nhị phân theo hợp đồng .proto và truyền qua luồng đa hợp HTTP/2.',
-  },
-];
+function getHeroSimPresets(lang: Language): HeroSimPreset[] {
+  if (lang === 'en') {
+    return [
+      {
+        id: 'request-response',
+        label: 'Synchronous Request / Response',
+        techBadge: 'REST / GraphQL / SOAP',
+        sourceLabel: 'Client Application',
+        gatewayLabel: 'HTTP / TLS Transport',
+        targetLabel: 'API Server & Database',
+        packetForward: 'GET /api/products/101 (JSON / XML / GraphQL Query)',
+        packetReturn: '200 OK → {"id": 101, "name": "Distributed Systems", "stock": 42}',
+        explanation:
+          'The client initiates a request and awaits a response. Each Request/Response cycle is an independent stateless transaction.',
+      },
+      {
+        id: 'bidirectional',
+        label: 'Persistent Full-Duplex Tunnel',
+        techBadge: 'WebSocket (Full-Duplex)',
+        sourceLabel: 'Client A & Client B',
+        gatewayLabel: 'Persistent TCP Tunnel (wss://)',
+        targetLabel: 'Realtime Event Hub',
+        packetForward: 'Frame↗: {"event":"chat.msg","text":"Hello team!"}',
+        packetReturn: 'Frame↙: {"event":"broadcast","from":"user_B","latency":"4ms"}',
+        explanation:
+          'After an HTTP 101 Switching Protocols upgrade, the TCP pipe stays open. Both Client and Server can push frames at any instant with zero handshake overhead.',
+      },
+      {
+        id: 'event-webhook',
+        label: 'Event-Driven Reverse Push',
+        techBadge: 'Webhook Callback',
+        sourceLabel: 'Payment Provider (Producer)',
+        gatewayLabel: 'Signed HTTP POST + HMAC',
+        targetLabel: 'Merchant Webhook Endpoint',
+        packetForward: 'POST /webhooks/payment → {"event":"payment.success","orderId":"ORD-99"}',
+        packetReturn: '200 OK → {"acknowledged":true} (Stops Retry Loop)',
+        explanation:
+          'Instead of your server polling repeatedly, the external provider actively fires an HMAC-signed HTTP POST to your Callback URL the moment an event occurs.',
+      },
+      {
+        id: 'binary-rpc',
+        label: 'Internal Binary RPC Stream',
+        techBadge: 'gRPC + Protocol Buffers',
+        sourceLabel: 'Order Microservice (Stub)',
+        gatewayLabel: 'HTTP/2 Multiplexed Stream',
+        targetLabel: 'Inventory Microservice',
+        packetForward: 'Binary Protobuf: ReserveStockRequest [0x08 0x65 0x10 0x02]',
+        packetReturn: 'Binary Protobuf: ReserveStockResponse [0x08 0x01] (1.8ms)',
+        explanation:
+          'Services invoke remote methods like local functions. Payloads are encoded into compact binary byte streams via .proto contracts over multiplexed HTTP/2.',
+      },
+    ];
+  }
+
+  return [
+    {
+      id: 'request-response',
+      label: 'Đồng bộ Request / Response',
+      techBadge: 'REST / GraphQL / SOAP',
+      sourceLabel: 'Client Application',
+      gatewayLabel: 'HTTP / TLS Transport',
+      targetLabel: 'API Server & Database',
+      packetForward: 'GET /api/products/101 (JSON / XML / GraphQL Query)',
+      packetReturn: '200 OK → {"id": 101, "name": "Distributed Systems", "stock": 42}',
+      explanation:
+        'Client chủ động khởi tạo yêu cầu và chờ phản hồi. Mỗi chu kỳ Request/Response là một giao dịch độc lập (Stateless).',
+    },
+    {
+      id: 'bidirectional',
+      label: 'Kết nối Bền vững Hai chiều',
+      techBadge: 'WebSocket (Full-Duplex)',
+      sourceLabel: 'Client A & Client B',
+      gatewayLabel: 'Persistent TCP Tunnel (ws://)',
+      targetLabel: 'Realtime Event Hub',
+      packetForward: 'Frame↗: {"event":"chat.msg","text":"Xin chào!"}',
+      packetReturn: 'Frame↙: {"event":"broadcast","from":"user_B","latency":"4ms"}',
+      explanation:
+        'Sau bước bắt tay HTTP 101 Switching Protocols, kênh TCP giữ mở liên tục. Cả Client và Server đều có thể đẩy khung tin (Frame) bất kỳ lúc nào mà không cần mở lại kết nối.',
+    },
+    {
+      id: 'event-webhook',
+      label: 'Hướng sự kiện Đảo ngược (Push)',
+      techBadge: 'Webhook Callback',
+      sourceLabel: 'Payment Provider (Producer)',
+      gatewayLabel: 'Signed HTTP POST + HMAC',
+      targetLabel: 'Merchant Webhook Endpoint',
+      packetForward: 'POST /webhooks/payment → {"event":"payment.success","orderId":"ORD-99"}',
+      packetReturn: '200 OK → {"acknowledged":true} (Tránh kích hoạt Retry)',
+      explanation:
+        'Thay vì hệ thống của bạn phải hỏi liên tục (Polling), nhà cung cấp dịch vụ tự động bắn HTTP POST sang Callback URL ngay khi sự kiện phát sinh.',
+    },
+    {
+      id: 'binary-rpc',
+      label: 'Gọi thủ tục Nhị phân Nội bộ',
+      techBadge: 'gRPC + Protocol Buffers',
+      sourceLabel: 'Order Microservice (Stub)',
+      gatewayLabel: 'HTTP/2 Multiplexed Stream',
+      targetLabel: 'Inventory Microservice',
+      packetForward: 'Binary Protobuf: ReserveStockRequest [0x08 0x65 0x10 0x02]',
+      packetReturn: 'Binary Protobuf: ReserveStockResponse [0x08 0x01] (1.8ms)',
+      explanation:
+        'Dịch vụ gọi hàm từ xa giống như gọi hàm cục bộ. Dữ liệu được nén thành chuỗi byte nhị phân theo hợp đồng .proto và truyền qua luồng đa hợp HTTP/2.',
+    },
+  ];
+}
 
 export default function LandingPage() {
+  const { lang } = useAppPreferences();
+  const isEn = lang === 'en';
   const [heroMode, setHeroMode] = useState<HeroSimMode>('request-response');
   const [selectedTechId, setSelectedTechId] = useState<ApiTechnologyId>('rest');
   const [packetAnimating, setPacketAnimating] = useState<boolean>(true);
 
+  const presets = getHeroSimPresets(lang);
+  const techList = getTechClassifications(lang);
+
   const activePreset =
-    HERO_SIM_PRESETS.find((p) => p.id === heroMode) ?? HERO_SIM_PRESETS[0]!;
+    presets.find((p) => p.id === heroMode) ?? presets[0]!;
   const selectedTech =
-    TECH_CLASSIFICATIONS.find((t) => t.id === selectedTechId) ??
-    TECH_CLASSIFICATIONS[0]!;
+    techList.find((t) => t.id === selectedTechId) ?? techList[0]!;
+
+  const roadmapStages = isEn
+    ? [
+        {
+          stage: 'STAGE 01',
+          title: 'API & HTTP Fundamentals',
+          desc: 'Master Client/Server roles, HTTP verbs, status codes, JSON/XML/Protobuf serialization, Auth (JWT/OAuth2), and the 7-stage API lifecycle.',
+          href: '/fundamentals',
+          cta: 'Start Fundamentals',
+          icon: BookOpen,
+        },
+        {
+          stage: 'STAGE 02',
+          title: '7 Technology Modules',
+          desc: 'Deep dive into architecture, wire packets, production code, and dedicated Playgrounds for REST, SOAP, GraphQL, gRPC, WebSocket, Webhook, and WebRTC.',
+          href: '/modules/rest',
+          cta: 'Open Module 1: REST',
+          icon: Cpu,
+        },
+        {
+          stage: 'STAGE 03',
+          title: 'Interactive API Laboratory',
+          desc: 'Run the Universal 8-Step Simulator (Start/Pause/Step) with fault injection and synchronized component telemetry.',
+          href: '/lab',
+          cta: 'Launch API Lab',
+          icon: FlaskConical,
+        },
+        {
+          stage: 'STAGE 04',
+          title: 'Real-World Systems & Comparison',
+          desc: 'Analyze 6 production system architectures and explore the 9-dimension comparison matrix & coexistence blueprint.',
+          href: '/scenarios',
+          cta: 'Explore 6 Scenarios',
+          icon: Layers,
+        },
+        {
+          stage: 'STAGE 05',
+          title: 'Competency Assessment',
+          desc: 'Test your mastery across 3 tiers: Conceptual Multiple Choice, Technical Wire Understanding, and Scenario Architecture Decisions.',
+          href: '/assessment',
+          cta: 'Take Assessment',
+          icon: Award,
+        },
+      ]
+    : [
+        {
+          stage: 'CHẶNG 01',
+          title: 'Nền tảng API & HTTP',
+          desc: 'Nắm vững Client/Server, HTTP Methods, Status Codes, JSON/XML/Protobuf, Auth (JWT/OAuth2) và 7 bước vòng đời API.',
+          href: '/fundamentals',
+          cta: 'Học Nền tảng',
+          icon: BookOpen,
+        },
+        {
+          stage: 'CHẶNG 02',
+          title: '7 Chuyên đề Công nghệ',
+          desc: 'Đi sâu vào kiến trúc, luồng gói tin, code thực tế và Playground chuyên biệt cho REST, SOAP, GraphQL, gRPC, WebSocket, Webhook, WebRTC.',
+          href: '/modules/rest',
+          cta: 'Vào Module 1: REST',
+          icon: Cpu,
+        },
+        {
+          stage: 'CHẶNG 03',
+          title: 'Phòng thí nghiệm API Lab',
+          desc: 'Thực nghiệm bộ mô phỏng Universal 8 bước (Start/Pause/Step) và quan sát trực quan hóa luồng dữ liệu đồng bộ trạng thái.',
+          href: '/lab',
+          cta: 'Mở Phòng Lab',
+          icon: FlaskConical,
+        },
+        {
+          stage: 'CHẶNG 04',
+          title: 'Kiến trúc Thực tế & So sánh',
+          desc: 'Phân tích 6 kịch bản kiến trúc phần mềm thực tế và tra cứu ma trận đối chiếu 9 chiều kỹ thuật.',
+          href: '/scenarios',
+          cta: 'Xem 6 Kịch bản',
+          icon: Layers,
+        },
+        {
+          stage: 'CHẶNG 05',
+          title: 'Đánh giá Năng lực',
+          desc: 'Kiểm tra kiến thức qua 3 dạng câu hỏi: Khái niệm, Cơ chế kỹ thuật và Ra quyết định chọn công nghệ cho bài toán thực tế.',
+          href: '/assessment',
+          cta: 'Làm bài kiểm tra',
+          icon: Award,
+        },
+      ];
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      {/* HERO SECTION: Technical Blueprint & Interactive Communication Schematic */}
+      {/* HERO SECTION */}
       <section className="relative border-b border-slate-800/90 bg-engineering-grid py-14 lg:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:items-center">
-            {/* Left Column: Core Headline & CTAs */}
+            {/* Left Column */}
             <div className="lg:col-span-6 space-y-6">
               <div className="inline-flex items-center gap-2 rounded border border-sky-500/30 bg-sky-950/40 px-3 py-1 font-mono text-xs text-sky-300">
                 <Activity className="h-3.5 w-3.5 text-sky-400" />
@@ -117,16 +260,28 @@ export default function LandingPage() {
                 </p>
               </div>
 
-              <p className="text-base leading-relaxed text-slate-300">
-                Không chỉ là trang đọc tài liệu tĩnh. Đây là phòng thí nghiệm kỹ thuật
-                tương tác nơi bạn trực quan hóa kiến trúc, theo dõi từng bước luân chuyển
-                gói tin, trực tiếp chỉnh sửa Request/Schema và kiểm chứng sự khác biệt cốt
-                lõi giữa{' '}
-                <span className="font-semibold text-white">
-                  REST, SOAP, GraphQL, gRPC, WebSocket, Webhook
-                </span>{' '}
-                và <span className="font-semibold text-white">WebRTC</span>.
-              </p>
+              {isEn ? (
+                <p className="text-base leading-relaxed text-slate-300">
+                  Not a passive static documentation site. This is an interactive
+                  engineering laboratory where you visualize architectures, trace live packet
+                  lifecycles, mutate requests and schemas, and master the exact trade-offs across{' '}
+                  <span className="font-semibold text-white">
+                    REST, SOAP, GraphQL, gRPC, WebSocket, Webhook
+                  </span>{' '}
+                  and <span className="font-semibold text-white">WebRTC</span>.
+                </p>
+              ) : (
+                <p className="text-base leading-relaxed text-slate-300">
+                  Không chỉ là trang đọc tài liệu tĩnh. Đây là phòng thí nghiệm kỹ thuật
+                  tương tác nơi bạn trực quan hóa kiến trúc, theo dõi từng bước luân chuyển
+                  gói tin, trực tiếp chỉnh sửa Request/Schema và kiểm chứng sự khác biệt cốt
+                  lõi giữa{' '}
+                  <span className="font-semibold text-white">
+                    REST, SOAP, GraphQL, gRPC, WebSocket, Webhook
+                  </span>{' '}
+                  và <span className="font-semibold text-white">WebRTC</span>.
+                </p>
+              )}
 
               {/* CTAs */}
               <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -135,7 +290,7 @@ export default function LandingPage() {
                   className="inline-flex items-center gap-2 rounded border border-sky-400 bg-sky-500 px-5 py-2.5 text-sm font-semibold text-slate-950 hover:bg-sky-400 transition-colors"
                 >
                   <BookOpen className="h-4 w-4" />
-                  Bắt đầu từ Nền tảng API
+                  {isEn ? 'Start with API Fundamentals' : 'Bắt đầu từ Nền tảng API'}
                   <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link
@@ -143,7 +298,7 @@ export default function LandingPage() {
                   className="inline-flex items-center gap-2 rounded border border-slate-700 bg-slate-900/90 px-5 py-2.5 text-sm font-semibold text-slate-100 hover:border-sky-500/60 hover:bg-slate-800 transition-colors"
                 >
                   <FlaskConical className="h-4 w-4 text-sky-400" />
-                  Mở Phòng thí nghiệm (API Lab)
+                  {isEn ? 'Open Interactive API Lab' : 'Mở Phòng thí nghiệm (API Lab)'}
                 </Link>
               </div>
 
@@ -152,32 +307,38 @@ export default function LandingPage() {
                 <div>
                   <p className="font-mono text-xl font-bold text-white">07</p>
                   <p className="text-xs text-slate-400">
-                    Chuyên đề & Playgrounds chuyên biệt
+                    {isEn ? 'Deep Modules & Dedicated Playgrounds' : 'Chuyên đề & Playgrounds chuyên biệt'}
                   </p>
                 </div>
                 <div>
-                  <p className="font-mono text-xl font-bold text-sky-400">08 Bước</p>
+                  <p className="font-mono text-xl font-bold text-sky-400">
+                    {isEn ? '08 Steps' : '08 Bước'}
+                  </p>
                   <p className="text-xs text-slate-400">
-                    Mô phỏng vòng đời Request/Response
+                    {isEn ? 'Interactive Request/Response Lifecycle' : 'Mô phỏng vòng đời Request/Response'}
                   </p>
                 </div>
                 <div>
-                  <p className="font-mono text-xl font-bold text-emerald-400">06 Kịch bản</p>
+                  <p className="font-mono text-xl font-bold text-emerald-400">
+                    {isEn ? '06 Scenarios' : '06 Kịch bản'}
+                  </p>
                   <p className="text-xs text-slate-400">
-                    Kiến trúc hệ thống thực tế
+                    {isEn ? 'Real-World System Architectures' : 'Kiến trúc hệ thống thực tế'}
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Right Column: Animated Application-to-Application Communication Visualizer */}
+            {/* Right Column: Animated Visualizer */}
             <div className="lg:col-span-6">
               <div className="rounded-lg border border-slate-800 bg-slate-925/95 p-5 shadow-2xl">
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3 mb-4">
                   <div className="flex items-center gap-2">
                     <Network className="h-4 w-4 text-sky-400" />
                     <span className="font-mono text-xs font-semibold uppercase tracking-wider text-slate-200">
-                      Mô hình Giao tiếp Liên ứng dụng (App-to-App Telemetry)
+                      {isEn
+                        ? 'App-to-App Communication Telemetry'
+                        : 'Mô hình Giao tiếp Liên ứng dụng (App-to-App Telemetry)'}
                     </span>
                   </div>
                   <button
@@ -186,13 +347,19 @@ export default function LandingPage() {
                     className="inline-flex items-center gap-1.5 rounded border border-slate-700 bg-slate-900 px-2.5 py-1 font-mono text-[11px] text-slate-300 hover:border-sky-500/50"
                   >
                     <Play className="h-3 w-3 text-sky-400" />
-                    {packetAnimating ? 'Đang truyền xung' : 'Tạm dừng xung'}
+                    {packetAnimating
+                      ? isEn
+                        ? 'Pulse Active'
+                        : 'Đang truyền xung'
+                      : isEn
+                      ? 'Pulse Paused'
+                      : 'Tạm dừng xung'}
                   </button>
                 </div>
 
                 {/* Mode Switcher */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 mb-5">
-                  {HERO_SIM_PRESETS.map((preset) => (
+                  {presets.map((preset) => (
                     <button
                       key={preset.id}
                       type="button"
@@ -213,7 +380,7 @@ export default function LandingPage() {
                   ))}
                 </div>
 
-                {/* Interactive SVG / Schematic Pipeline */}
+                {/* Schematic Pipeline */}
                 <div className="rounded border border-slate-800/90 bg-slate-950 p-4 space-y-4">
                   <div className="grid grid-cols-3 gap-2 items-center text-center">
                     <div className="rounded border border-sky-500/40 bg-slate-900 p-3">
@@ -248,7 +415,7 @@ export default function LandingPage() {
                   <div className="space-y-2.5 pt-1">
                     <div className="rounded border border-slate-800 bg-slate-900/90 px-3 py-2">
                       <div className="flex items-center justify-between text-[11px] font-mono text-sky-300 mb-1">
-                        <span>LUỒNG ĐI (OUTBOUND WIRE)</span>
+                        <span>{isEn ? 'OUTBOUND WIRE' : 'LUỒNG ĐI (OUTBOUND WIRE)'}</span>
                         <span className={packetAnimating ? 'animate-pulse text-sky-400' : ''}>
                           ●───►
                         </span>
@@ -260,7 +427,9 @@ export default function LandingPage() {
 
                     <div className="rounded border border-slate-800 bg-slate-900/90 px-3 py-2">
                       <div className="flex items-center justify-between text-[11px] font-mono text-emerald-300 mb-1">
-                        <span>LUỒNG VỀ / PHẢN HỒI (INBOUND WIRE)</span>
+                        <span>
+                          {isEn ? 'INBOUND / RETURN WIRE' : 'LUỒNG VỀ / PHẢN HỒI (INBOUND WIRE)'}
+                        </span>
                         <span
                           className={
                             packetAnimating ? 'animate-pulse text-emerald-400' : ''
@@ -276,8 +445,10 @@ export default function LandingPage() {
                   </div>
 
                   <p className="text-xs leading-relaxed text-slate-300 border-t border-slate-800/80 pt-3">
-                    <span className="font-semibold text-sky-400">Cơ chế hoạt động: </span>
-                    {activePreset.explanationVi}
+                    <span className="font-semibold text-sky-400">
+                      {isEn ? 'Mechanism: ' : 'Cơ chế hoạt động: '}
+                    </span>
+                    {activePreset.explanation}
                   </p>
                 </div>
               </div>
@@ -291,19 +462,34 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-10">
           <div className="max-w-3xl space-y-2">
             <p className="font-mono text-xs font-semibold uppercase tracking-wider text-sky-400">
-              PHÂN LOẠI KỸ THUẬT CHÍNH XÁC (TECHNICAL CLASSIFICATION)
+              {isEn
+                ? 'ACCURATE TECHNICAL CLASSIFICATION'
+                : 'PHÂN LOẠI KỸ THUẬT CHÍNH XÁC (TECHNICAL CLASSIFICATION)'}
             </p>
             <h2 className="text-2xl font-bold text-white sm:text-3xl">
-              7 Chủ đề này không phải là 7 loại API ngang hàng thay thế lẫn nhau
+              {isEn
+                ? 'These 7 Subjects Are Not Interchangeable API Categories'
+                : '7 Chủ đề này không phải là 7 loại API ngang hàng thay thế lẫn nhau'}
             </h2>
-            <p className="text-sm text-slate-300 leading-relaxed">
-              Một sai lầm phổ biến của người mới học là đặt câu hỏi{' '}
-              <em>&ldquo;Nên chọn WebRTC hay REST?&rdquo;</em> hoặc{' '}
-              <em>&ldquo;Webhook có nhanh hơn WebSocket không?&rdquo;</em>. Thực tế, mỗi công
-              nghệ thuộc một <strong className="text-white">bản chất kỹ thuật</strong> khác
-              nhau và thường <strong className="text-white">cùng tồn tại (coexist)</strong>{' '}
-              trong cùng một kiến trúc phần mềm hiện đại.
-            </p>
+            {isEn ? (
+              <p className="text-sm text-slate-300 leading-relaxed">
+                A common misconception is asking{' '}
+                <em>&ldquo;Should we choose WebRTC or REST?&rdquo;</em> or{' '}
+                <em>&ldquo;Are Webhooks faster than WebSockets?&rdquo;</em>. In reality, each
+                technology occupies a distinct <strong className="text-white">technical layer</strong>{' '}
+                and they routinely <strong className="text-white">coexist</strong> within the
+                same modern software architecture.
+              </p>
+            ) : (
+              <p className="text-sm text-slate-300 leading-relaxed">
+                Một sai lầm phổ biến của người mới học là đặt câu hỏi{' '}
+                <em>&ldquo;Nên chọn WebRTC hay REST?&rdquo;</em> hoặc{' '}
+                <em>&ldquo;Webhook có nhanh hơn WebSocket không?&rdquo;</em>. Thực tế, mỗi công
+                nghệ thuộc một <strong className="text-white">bản chất kỹ thuật</strong> khác
+                nhau và thường <strong className="text-white">cùng tồn tại (coexist)</strong>{' '}
+                trong cùng một kiến trúc phần mềm hiện đại.
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
@@ -312,13 +498,19 @@ export default function LandingPage() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-slate-800 bg-slate-900/90 font-mono text-[11px] uppercase text-slate-400">
-                    <th className="py-3 px-4">Công nghệ (Technology)</th>
-                    <th className="py-3 px-4">Bản chất Kỹ thuật (Technical Nature)</th>
-                    <th className="py-3 px-4">Vai trò cốt lõi</th>
+                    <th className="py-3 px-4">
+                      {isEn ? 'Technology' : 'Công nghệ (Technology)'}
+                    </th>
+                    <th className="py-3 px-4">
+                      {isEn ? 'Technical Nature' : 'Bản chất Kỹ thuật (Technical Nature)'}
+                    </th>
+                    <th className="py-3 px-4">
+                      {isEn ? 'Core Architectural Role' : 'Vai trò cốt lõi'}
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/80 text-xs">
-                  {TECH_CLASSIFICATIONS.map((item) => {
+                  {techList.map((item) => {
                     const active = item.id === selectedTechId;
                     return (
                       <tr
@@ -341,12 +533,14 @@ export default function LandingPage() {
                           <span className="inline-block rounded border border-slate-700 bg-slate-900 px-2 py-0.5 font-mono text-[11px] text-sky-300">
                             {item.natureEn}
                           </span>
-                          <p className="text-[11px] text-slate-400 mt-0.5">
-                            {item.natureVi}
-                          </p>
+                          {!isEn && (
+                            <p className="text-[11px] text-slate-400 mt-0.5">
+                              {item.natureVi}
+                            </p>
+                          )}
                         </td>
                         <td className="py-3 px-4 text-slate-300 leading-relaxed">
-                          {item.roleSummaryVi}
+                          {item.roleSummary}
                         </td>
                       </tr>
                     );
@@ -355,12 +549,12 @@ export default function LandingPage() {
               </table>
             </div>
 
-            {/* Interactive Deep-Dive Card for Selected Technology & Coexistence */}
+            {/* Interactive Deep-Dive Card */}
             <div className="lg:col-span-5 flex flex-col justify-between rounded-lg border border-slate-800 bg-slate-925 p-6 space-y-6">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-xs uppercase tracking-wider text-slate-400">
-                    ĐANG XEM CHI TIẾT PHÂN LOẠI
+                    {isEn ? 'INSPECTING CLASSIFICATION' : 'ĐANG XEM CHI TIẾT PHÂN LOẠI'}
                   </span>
                   <span
                     className="rounded px-2.5 py-0.5 font-mono text-xs font-bold text-slate-950"
@@ -371,23 +565,25 @@ export default function LandingPage() {
                 </div>
 
                 <h3 className="text-2xl font-bold text-white">{selectedTech.name}</h3>
-                <p className="text-xs font-mono text-sky-400">{selectedTech.natureVi}</p>
+                <p className="text-xs font-mono text-sky-400">{selectedTech.nature}</p>
 
                 <div className="rounded border border-slate-800 bg-slate-950 p-4 space-y-2">
                   <p className="font-mono text-[11px] uppercase text-slate-400">
-                    Định nghĩa & Phạm vi
+                    {isEn ? 'Definition & Scope' : 'Định nghĩa & Phạm vi'}
                   </p>
                   <p className="text-sm text-slate-200 leading-relaxed">
-                    {selectedTech.roleSummaryVi}
+                    {selectedTech.roleSummary}
                   </p>
                 </div>
 
                 <div className="rounded border border-emerald-500/30 bg-emerald-950/20 p-4 space-y-2">
                   <p className="font-mono text-[11px] uppercase text-emerald-400">
-                    Cách phối hợp (Coexistence) trong hệ thống thực tế
+                    {isEn
+                      ? 'Architectural Coexistence in Production'
+                      : 'Cách phối hợp (Coexistence) trong hệ thống thực tế'}
                   </p>
                   <p className="text-xs text-slate-200 leading-relaxed">
-                    {selectedTech.coexistenceExampleVi}
+                    {selectedTech.coexistenceExample}
                   </p>
                 </div>
               </div>
@@ -397,14 +593,16 @@ export default function LandingPage() {
                   href={selectedTech.href}
                   className="inline-flex items-center gap-2 rounded bg-sky-500 px-4 py-2 text-xs font-semibold text-slate-950 hover:bg-sky-400 transition-colors"
                 >
-                  Học chuyên đề {selectedTech.shortName} & Thực hành Playground
+                  {isEn
+                    ? `Study ${selectedTech.shortName} & Open Playground`
+                    : `Học chuyên đề ${selectedTech.shortName} & Thực hành Playground`}
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
                 <Link
                   href="/comparison"
                   className="text-xs font-mono text-slate-400 hover:text-sky-400"
                 >
-                  Xem bảng so sánh 9 chiều →
+                  {isEn ? '9-Dimension Matrix →' : 'Xem bảng so sánh 9 chiều →'}
                 </Link>
               </div>
             </div>
@@ -418,23 +616,29 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
               <p className="font-mono text-xs font-semibold uppercase tracking-wider text-sky-400">
-                7 CHUYÊN ĐỀ KỸ THUẬT CHUYÊN SÂU
+                {isEn ? '7 IN-DEPTH ENGINEERING MODULES' : '7 CHUYÊN ĐỀ KỸ THUẬT CHUYÊN SÂU'}
               </p>
               <h2 className="text-2xl font-bold text-white sm:text-3xl mt-1">
-                Khám phá 7 Công nghệ & Đặc tả API cốt lõi
+                {isEn
+                  ? 'Explore 7 Core API Technologies & Protocols'
+                  : 'Khám phá 7 Công nghệ & Giao thức API cốt lõi'}
               </h2>
             </div>
             <Link
               href="/lab"
               className="inline-flex items-center gap-2 font-mono text-xs text-sky-400 hover:text-sky-300"
             >
-              <span>Thử nghiệm tất cả trong Interactive API Laboratory</span>
+              <span>
+                {isEn
+                  ? 'Experiment with all 7 in the Interactive API Laboratory'
+                  : 'Thử nghiệm tất cả trong Interactive API Laboratory'}
+              </span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {TECH_CLASSIFICATIONS.map((tech, index) => (
+            {techList.map((tech, index) => (
               <Link
                 key={tech.id}
                 href={tech.href}
@@ -462,16 +666,18 @@ export default function LandingPage() {
                   </h3>
 
                   <p className="text-xs text-slate-300 leading-relaxed">
-                    {tech.roleSummaryVi}
+                    {tech.roleSummary}
                   </p>
                 </div>
 
                 <div className="mt-5 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
                   <span className="font-mono text-[11px] text-slate-400">
-                    12 Mục lý thuyết + Interactive Playground
+                    {isEn
+                      ? '12 Sections + Interactive Playground'
+                      : '12 Mục lý thuyết + Interactive Playground'}
                   </span>
                   <span className="font-mono text-sky-400 group-hover:translate-x-1 transition-transform">
-                    Mở bài học →
+                    {isEn ? 'Open Module →' : 'Mở bài học →'}
                   </span>
                 </div>
               </Link>
@@ -485,61 +691,24 @@ export default function LandingPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-10">
           <div className="max-w-3xl space-y-2">
             <p className="font-mono text-xs font-semibold uppercase tracking-wider text-emerald-400">
-              LỘ TRÌNH HỌC TẬP KỸ THUẬT (STRUCTURED LEARNING ROADMAP)
+              {isEn
+                ? 'STRUCTURED LEARNING ROADMAP'
+                : 'LỘ TRÌNH HỌC TẬP KỸ THUẬT (STRUCTURED LEARNING ROADMAP)'}
             </p>
             <h2 className="text-2xl font-bold text-white sm:text-3xl">
-              5 Chặng từ Nền tảng Giao thức đến Thiết kế Kiến trúc Phân tán
+              {isEn
+                ? '5 Stages from Wire Fundamentals to Distributed Systems Design'
+                : '5 Chặng từ Nền tảng Giao thức đến Thiết kế Kiến trúc Phân tán'}
             </h2>
             <p className="text-sm text-slate-300">
-              Được thiết kế dành cho sinh viên Khoa học Máy tính, Khoa học Dữ liệu và lập
-              trình viên Backend muốn làm chủ bản chất giao tiếp hệ thống thay vì chỉ học
-              thuộc lòng định nghĩa.
+              {isEn
+                ? 'Designed for Computer Science students, Data Science learners, and Backend Engineers who want to master system communication mechanics rather than memorize definitions.'
+                : 'Được thiết kế dành cho sinh viên Khoa học Máy tính, Khoa học Dữ liệu và lập trình viên Backend muốn làm chủ bản chất giao tiếp hệ thống thay vì chỉ học thuộc lòng định nghĩa.'}
             </p>
           </div>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
-            {[
-              {
-                stage: 'CHẶNG 01',
-                title: 'Nền tảng API & HTTP',
-                desc: 'Nắm vững Client/Server, HTTP Methods, Status Codes, JSON/XML/Protobuf, Auth (JWT/OAuth2) và 7 bước vòng đời API.',
-                href: '/fundamentals',
-                cta: 'Học Nền tảng',
-                icon: BookOpen,
-              },
-              {
-                stage: 'CHẶNG 02',
-                title: '7 Chuyên đề Công nghệ',
-                desc: 'Đi sâu vào kiến trúc, luồng gói tin, code thực tế và Playground chuyên biệt cho REST, SOAP, GraphQL, gRPC, WebSocket, Webhook, OpenAPI.',
-                href: '/modules/rest',
-                cta: 'Vào Module 1: REST',
-                icon: Cpu,
-              },
-              {
-                stage: 'CHẶNG 03',
-                title: 'Phòng thí nghiệm API Lab',
-                desc: 'Thực nghiệm bộ mô phỏng Universal 8 bước (Start/Pause/Step) và quan sát trực quan hóa luồng dữ liệu đồng bộ trạng thái.',
-                href: '/lab',
-                cta: 'Mở Phòng Lab',
-                icon: FlaskConical,
-              },
-              {
-                stage: 'CHẶNG 04',
-                title: 'Kiến trúc Thực tế & So sánh',
-                desc: 'Phân tích 6 kịch bản kiến trúc phần mềm thực tế và tra cứu ma trận đối chiếu 9 chiều kỹ thuật.',
-                href: '/scenarios',
-                cta: 'Xem 6 Kịch bản',
-                icon: Layers,
-              },
-              {
-                stage: 'CHẶNG 05',
-                title: 'Đánh giá Năng lực',
-                desc: 'Kiểm tra kiến thức qua 3 dạng câu hỏi: Khái niệm, Cơ chế kỹ thuật và Ra quyết định chọn công nghệ cho bài toán thực tế.',
-                href: '/assessment',
-                cta: 'Làm bài kiểm tra',
-                icon: Award,
-              },
-            ].map((item) => {
+            {roadmapStages.map((item) => {
               const IconComp = item.icon;
               return (
                 <div

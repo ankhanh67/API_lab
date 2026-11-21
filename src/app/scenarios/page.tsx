@@ -4,27 +4,28 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import {
   Layers,
-  Play,
   ChevronRight,
   ChevronLeft,
   RotateCcw,
-  CheckCircle2,
-  AlertTriangle,
-  ArrowRight,
   Network,
 } from 'lucide-react';
-import { REAL_WORLD_SCENARIOS } from '@/data/scenarios';
-import { TECH_CLASSIFICATIONS } from '@/config/site';
+import { getRealWorldScenarios } from '@/data/scenarios';
+import { getTechClassifications } from '@/config/site';
+import { useAppPreferences } from '@/context/AppPreferencesContext';
 
 export default function RealWorldScenariosPage() {
+  const { lang } = useAppPreferences();
+  const isEn = lang === 'en';
+  const scenarios = getRealWorldScenarios(lang);
+  const techList = getTechClassifications(lang);
+
   const [selectedScenarioId, setSelectedScenarioId] = useState<string>(
-    REAL_WORLD_SCENARIOS[0]?.id ?? 'ecommerce-platform'
+    scenarios[0]?.id ?? 'ecommerce-platform'
   );
   const [activeSimStepIdx, setActiveSimStepIdx] = useState<number>(0);
 
   const scenario =
-    REAL_WORLD_SCENARIOS.find((s) => s.id === selectedScenarioId) ??
-    REAL_WORLD_SCENARIOS[0]!;
+    scenarios.find((s) => s.id === selectedScenarioId) ?? scenarios[0]!;
   const currentStep =
     scenario.simulationSteps[activeSimStepIdx] ??
     scenario.simulationSteps[0]!;
@@ -44,13 +45,14 @@ export default function RealWorldScenariosPage() {
             <span>SECTION 6: REAL-WORLD SCENARIO LAB</span>
           </div>
           <h1 className="text-3xl font-extrabold text-white sm:text-4xl">
-            Phòng Thí nghiệm Kiến trúc Thực tế (Real-World Scenario Lab)
+            {isEn
+              ? 'Real-World Software Architecture Scenario Lab'
+              : 'Phòng Thí nghiệm Kiến trúc Thực tế (Real-World Scenario Lab)'}
           </h1>
           <p className="max-w-3xl text-sm text-slate-300 leading-relaxed">
-            Khám phá 6 kịch bản kiến trúc phần mềm thực tế: Tìm hiểu bài toán nghiệp vụ,
-            lý do lựa chọn từng công nghệ, cách nhiều công nghệ cùng tồn tại (Coexist),
-            chạy mô phỏng luồng gói tin qua các nút kiến trúc và phân tích sự đánh đổi
-            (Trade-offs).
+            {isEn
+              ? 'Explore 6 production architecture scenarios: Understand the business requirements, why specific API technologies are selected, how multiple protocols coexist, trace multi-node packet flows, and evaluate engineering trade-offs.'
+              : 'Khám phá 6 kịch bản kiến trúc phần mềm thực tế: Tìm hiểu bài toán nghiệp vụ, lý do lựa chọn từng công nghệ, cách nhiều công nghệ cùng tồn tại (Coexist), chạy mô phỏng luồng gói tin qua các nút kiến trúc và phân tích sự đánh đổi (Trade-offs).'}
           </p>
         </div>
       </section>
@@ -58,7 +60,7 @@ export default function RealWorldScenariosPage() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 space-y-8">
         {/* 6 Scenario Selector Tabs */}
         <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-          {REAL_WORLD_SCENARIOS.map((sc) => {
+          {scenarios.map((sc) => {
             const active = sc.id === scenario.id;
             return (
               <button
@@ -103,7 +105,7 @@ export default function RealWorldScenariosPage() {
                 {scenario.titleEn}
               </span>
               {scenario.technologies.map((techId) => {
-                const info = TECH_CLASSIFICATIONS.find((t) => t.id === techId);
+                const info = techList.find((t) => t.id === techId);
                 return (
                   <Link
                     key={techId}
@@ -120,7 +122,9 @@ export default function RealWorldScenariosPage() {
 
             <div className="rounded border border-slate-800 bg-slate-950 p-4 space-y-1.5 mt-3">
               <p className="font-mono text-xs font-bold uppercase text-amber-400">
-                Bài toán Nghiệp vụ (Business Problem):
+                {isEn
+                  ? 'Business Problem & Requirements:'
+                  : 'Bài toán Nghiệp vụ (Business Problem):'}
               </p>
               <p className="text-xs text-slate-200 leading-relaxed">
                 {scenario.businessProblemVi}
@@ -137,7 +141,9 @@ export default function RealWorldScenariosPage() {
                   <span>INTERACTIVE ARCHITECTURE & COMMUNICATION FLOW SIMULATION</span>
                 </div>
                 <h3 className="text-lg font-bold text-white mt-0.5">
-                  Sơ đồ Kiến trúc & Mô phỏng Luồng Gói tin Thực tế
+                  {isEn
+                    ? 'System Topology & Step-by-Step Wire Packet Simulation'
+                    : 'Sơ đồ Kiến trúc & Mô phỏng Luồng Gói tin Thực tế'}
                 </h3>
               </div>
 
@@ -162,7 +168,8 @@ export default function RealWorldScenariosPage() {
                   <ChevronLeft className="h-4 w-4" />
                 </button>
                 <span className="font-mono text-xs font-bold text-sky-300 px-2">
-                  Bước {currentStep.step} / {scenario.simulationSteps.length}
+                  {isEn ? 'Step ' : 'Bước '}
+                  {currentStep.step} / {scenario.simulationSteps.length}
                 </span>
                 <button
                   type="button"
@@ -173,7 +180,7 @@ export default function RealWorldScenariosPage() {
                   }
                   className="inline-flex items-center gap-1 rounded bg-sky-500 px-3 py-1.5 font-mono text-xs font-bold text-slate-950 hover:bg-sky-400"
                 >
-                  <span>Bước tiếp theo</span>
+                  <span>{isEn ? 'Next Step' : 'Bước tiếp theo'}</span>
                   <ChevronRight className="h-4 w-4" />
                 </button>
               </div>
@@ -248,7 +255,7 @@ export default function RealWorldScenariosPage() {
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 rounded border border-slate-800 bg-slate-950 p-5">
               <div className="lg:col-span-5 space-y-2">
                 <span className="font-mono text-xs font-bold uppercase text-sky-400">
-                  {currentStep.actionLabel} (Sử dụng:{' '}
+                  {currentStep.actionLabel} ({isEn ? 'Protocol: ' : 'Sử dụng: '}
                   {currentStep.techId.toUpperCase()})
                 </span>
                 <p className="text-xs text-slate-200 leading-relaxed">
@@ -267,7 +274,9 @@ export default function RealWorldScenariosPage() {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 border-t border-slate-800 pt-6">
             <div className="lg:col-span-7 space-y-3">
               <h3 className="font-mono text-xs font-bold uppercase text-emerald-400">
-                Lý do Lựa chọn Công nghệ (Reason for Technology Selection):
+                {isEn
+                  ? 'Reason for Technology Selection:'
+                  : 'Lý do Lựa chọn Công nghệ (Reason for Technology Selection):'}
               </h3>
               <div className="space-y-2.5">
                 {scenario.whyTheseTechnologiesVi.map((item) => (
@@ -276,7 +285,7 @@ export default function RealWorldScenariosPage() {
                     className="rounded border border-slate-800 bg-slate-950 p-3.5 text-xs space-y-1"
                   >
                     <span className="font-mono font-bold uppercase text-sky-400">
-                      ✓ Tại sao dùng {item.techId.toUpperCase()}:
+                      ✓ {isEn ? `Why ${item.techId.toUpperCase()}:` : `Tại sao dùng ${item.techId.toUpperCase()}:`}
                     </span>
                     <p className="text-slate-200 leading-relaxed">{item.reasonVi}</p>
                   </div>
@@ -286,7 +295,9 @@ export default function RealWorldScenariosPage() {
 
             <div className="lg:col-span-5 space-y-3">
               <h3 className="font-mono text-xs font-bold uppercase text-amber-400">
-                Phân tích Đánh đổi Kiến trúc (Architectural Trade-Offs):
+                {isEn
+                  ? 'Architectural Trade-Offs:'
+                  : 'Phân tích Đánh đổi Kiến trúc (Architectural Trade-Offs):'}
               </h3>
               <div className="rounded border border-amber-500/30 bg-amber-950/15 p-4 space-y-2.5 text-xs text-slate-200">
                 {scenario.tradeOffsVi.map((tr) => (
